@@ -1,0 +1,114 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: #ffffff;
+    --foreground: #1e293b;
+    --muted: #f1f5f9;
+    --muted-foreground: #64748b;
+    --border: #e2e8f0;
+    --card: #ffffff;
+  }
+  .dark {
+    --background: #1e3a5f;
+    --foreground: #f8fafc;
+    --muted: #2563eb;
+    --muted-foreground: #93c5fd;
+    --border: #3b82f6;
+    --card: #1e3a5f;
+  }
+  body {
+    background-color: #ffffff;
+    color: #1e293b;
+    @apply antialiased;
+  }
+  html {
+    scroll-behavior: smooth;
+    scrollbar-gutter: stable;
+  }
+  /* Light scrollbar so it doesn't look like a dark bar on the right */
+  html {
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+  body::-webkit-scrollbar {
+    width: 8px;
+  }
+  body::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  body::-webkit-scrollbar-thumb {
+    background-color: var(--border);
+    border-radius: 4px;
+  }
+  body::-webkit-scrollbar-thumb:hover {
+    background-color: var(--muted-foreground);
+  }
+}
+
+@layer components {
+  .container-custom {
+    @apply max-w-7xl mx-auto px-6 lg:px-8;
+  }
+
+  /* Glass morphism utility */
+  .glass {
+    @apply backdrop-blur-md bg-slate-800/60 border border-white/10 shadow-xl shadow-blue-900/20;
+  }
+
+  .glass-light {
+    @apply backdrop-blur-md bg-white/5 border border-white/10 shadow-xl shadow-blue-800/10;
+  }
+
+  /* Noise texture effect */
+  .noise-texture {
+    position: relative;
+  }
+
+  .noise-texture::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    opacity: 0.03;
+    background-image: 
+      repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(255,255,255,0.1) 2px, rgba(255,255,255,0.1) 4px),
+      repeating-linear-gradient(90deg, transparent, transparent 2px, rgba(255,255,255,0.1) 2px, rgba(255,255,255,0.1) 4px);
+    pointer-events: none;
+  }
+
+  /* Soft spotlight effect */
+  .spotlight {
+    position: relative;
+  }
+
+  .spotlight::after {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(37, 99, 235, 0.15) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+  }
+}
+
+@layer utilities {
+  /* Inner shadow utility */
+  .inner-shadow {
+    box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.1);
+  }
+
+  /* Hide scrollbar while keeping scroll */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+}

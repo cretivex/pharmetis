@@ -1,0 +1,966 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                  String               @id @default(uuid())
+  email               String               @unique
+  password            String
+  role                UserRole             @default(BUYER)
+  deletedAt           DateTime?
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  fullName            String?
+  city                String?
+  companyName         String?
+  country             String?
+  phone               String?
+  avatar              String?             // Profile photo URL
+  emailVerified       Boolean              @default(false) // Email verification status
+  otpCode             String?              // Hashed OTP
+  otpExpiresAt        DateTime?            // OTP expiry time
+  otpAttempts         Int                  @default(0) // Failed OTP attempts
+  otpLoginEnabled     Boolean              @default(true) // OTP login preference
+  resetPasswordToken  String?
+  resetPasswordExpires DateTime?
+  accessRequest       AccessRequest?
+  buyerQuotations     BuyerQuotation[]
+  orders              Order[]
+  refreshTokens       RefreshToken[]
+  rfqs                RFQ[]
+  savedProducts       SavedProduct[]
+  supplier            Supplier?
+  userSettings        UserSettings?
+  notifications       Notification[]
+  paymentTransactions PaymentTransaction[]
+  payments            Payment[]            @relation("PaymentBuyer")
+  otps                OTP[]
+  userOtps            UserOTP[]
+  companyInfo         CompanyInfo?
+  addresses           Address[]
+
+  @@index([email])
+  @@index([role])
+  @@index([createdAt])
+  @@index([deletedAt])
+  @@map("users")
+}
+
+model RefreshToken {
+  id        String    @id @default(uuid())
+  userId    String
+  token     String    @unique
+  expiresAt DateTime
+  revoked   Boolean   @default(false)
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([token])
+  @@index([expiresAt])
+  @@index([revoked])
+  @@map("refresh_tokens")
+}
+
+model OTP {
+  id        String   @id @default(uuid())
+  email     String
+  code      String
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+  user      User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String?
+
+  @@index([email])
+  @@index([code])
+  @@index([expiresAt])
+  @@index([used])
+  @@map("otps")
+}
+
+model UserOTP {
+  id        String   @id @default(uuid())
+  userId    String
+  otpCode   String
+  expiresAt DateTime
+  attempts  Int      @default(0)
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("user_otps")
+}
+
+model AuditLog {
+  id           String   @id @default(uuid())
+  userId       String
+  userEmail    String?
+  userRole     String
+  action       String
+  resourceType String
+  resourceId   String?
+  oldValue     Json?
+  newValue     Json?
+  ipAddress    String?
+  userAgent    String?
+  createdAt    DateTime @default(now())
+
+  @@index([userId])
+  @@index([action])
+  @@index([resourceType])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+model Supplier {
+  id                        String                           @id @default(uuid())
+  userId                    String                           @unique
+  companyName               String
+  slug                      String                           @unique
+  country                   String
+  city                      String?
+  address                   String?
+  phone                     String?
+  website                   String?
+  logo                      String?
+  description               String?
+  therapeutics              String?                          // Therapeutic areas
+  manufacturer              String?                          // Manufacturer name
+  yearsInBusiness           Int?
+  totalProducts             Int                              @default(0)
+  isVerified                Boolean                          @default(false)
+  isActive                  Boolean                          @default(true)
+  deletedAt                 DateTime?
+  otpCode                   String?                          // OTP for email verification
+  otpExpires                DateTime?                        // OTP expiry time
+  resetOtp                  String?                          // 6-digit OTP for password reset
+  resetOtpExpires           DateTime?
+  resetOtpCount             Int                              @default(0) // Rate limit: max 5 per window
+  resetOtpCountResetAt      DateTime?
+  createdAt                 DateTime                         @default(now())
+  updatedAt                 DateTime                         @updatedAt
+  assignedRFQs              RFQSupplier[]
+  buyerQuotations           BuyerQuotation[]
+  orders                    Order[]
+  products                  Product[]
+  rfqResponses              RFQResponse[]
+  certifications            SupplierCertification[]
+  compliance                SupplierCompliance?
+  manufacturingCapabilities SupplierManufacturingCapability?
+  user                      User                             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([slug])
+  @@index([country])
+  @@index([isVerified])
+  @@index([isActive])
+  @@index([deletedAt])
+  @@index([otpCode])
+  @@index([otpExpires])
+  @@map("suppliers")
+}
+
+model Product {
+  id                  String                 @id @default(uuid())
+  supplierId          String
+  name                String
+  slug                String
+  brand               String?
+  strength            String?
+  compareTo           String?
+  ndcNumber           String?
+  packSize            String?
+  dosageForm          DosageForm
+  manufacturer        String?
+  country             String?
+  description         String?
+  apiName             String?
+  composition         String?
+  therapeutics        String?                // Product therapeutic areas
+  packagingType       String?
+  shelfLife           String?
+  storageConditions   String?
+  regulatoryApprovals String?
+  hsCode              String?
+  moq                 String?
+  availability        ProductAvailability    @default(IN_STOCK)
+  price               Decimal?               @db.Decimal(10, 2)
+  isActive            Boolean                @default(true)
+  deletedAt           DateTime?
+  createdAt           DateTime               @default(now())
+  updatedAt           DateTime               @updatedAt
+  buyerQuotationItems BuyerQuotationItem[]
+  orderItems          OrderItem[]
+  productCategories   ProductCategory[]
+  certifications      ProductCertification[]
+  compliance          ProductCompliance?
+  images              ProductImage[]
+  supplier            Supplier               @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  rfqItems            RFQItem[]
+  rfqResponseItems    RFQResponseItem[]
+  savedProducts       SavedProduct[]
+
+  @@unique([supplierId, slug])
+  @@index([slug])
+  @@index([supplierId])
+  @@index([dosageForm])
+  @@index([availability])
+  @@index([isActive])
+  @@index([deletedAt])
+  @@map("products")
+}
+
+model RFQSupplier {
+  id         String   @id @default(uuid())
+  rfqId      String
+  supplierId String
+  createdAt  DateTime @default(now())
+  rfq        RFQ      @relation(fields: [rfqId], references: [id], onDelete: Cascade)
+  supplier   Supplier @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+
+  @@unique([rfqId, supplierId])
+  @@index([rfqId])
+  @@index([supplierId])
+  @@map("rfq_suppliers")
+}
+
+model RFQ {
+  id                  String           @id @default(uuid())
+  buyerId             String
+  title               String?
+  status              RFQStatus        @default(DRAFT)
+  expectedDelivery    DateTime?
+  paymentStatus       PaymentStatus?   @default(PENDING)
+  paymentType         PaymentType?
+  totalAmount         Decimal?         @db.Decimal(10, 2)
+  paidAmount          Decimal?         @default(0) @db.Decimal(10, 2)
+  remainingAmount     Decimal?         @default(0) @db.Decimal(10, 2)
+  notes               String?
+  expiresAt           DateTime?
+  deletedAt           DateTime?
+  createdAt           DateTime         @default(now())
+  updatedAt           DateTime         @updatedAt
+  selectedQuotationId String?
+  assignedSuppliers   RFQSupplier[]
+  buyerQuotations     BuyerQuotation[]
+  items               RFQItem[]
+  responses           RFQResponse[]
+  buyer               User             @relation(fields: [buyerId], references: [id], onDelete: Cascade)
+  selectedQuotation   RFQResponse?     @relation("SelectedQuotation", fields: [selectedQuotationId], references: [id])
+  payments            Payment[]            @relation("RFQPayments")
+  orders              Order[]          @relation("OrderRFQ")
+  history             RFQHistory[]
+
+  @@index([buyerId])
+  @@index([status])
+  @@index([paymentStatus])
+  @@index([selectedQuotationId])
+  @@index([createdAt])
+  @@index([deletedAt])
+  @@map("rfqs")
+}
+
+model RFQHistory {
+  id         String        @id @default(uuid())
+  rfqId      String
+  responseId String?
+  actorRole  UserRole
+  actorId    String
+  action     HistoryAction
+  note       String?
+  createdAt  DateTime      @default(now())
+  rfq        RFQ           @relation(fields: [rfqId], references: [id], onDelete: Cascade)
+  response   RFQResponse?  @relation("ResponseHistory", fields: [responseId], references: [id])
+
+  @@index([rfqId])
+  @@index([responseId])
+  @@index([actorRole])
+  @@index([action])
+  @@index([createdAt])
+  @@map("rfq_history")
+}
+
+model Order {
+  id                      String              @id @default(uuid())
+  rfqId                   String?
+  quotationId             String?
+  buyerId                 String
+  supplierId              String
+  orderNumber             String              @unique
+  status                  OrderStatus         @default(PENDING)
+  totalAmount             Decimal             @db.Decimal(10, 2)
+  currency                String              @default("USD")
+  shippingAddress         String?
+  notes                   String?
+  deliveryDetailsComplete Boolean             @default(false)
+  deletedAt               DateTime?
+  createdAt               DateTime            @default(now())
+  updatedAt               DateTime            @updatedAt
+  items                   OrderItem[]
+  deliveryDetail          OrderDeliveryDetail?
+  shipmentDetail          ShipmentDetail?
+  rfq                     RFQ?                @relation("OrderRFQ", fields: [rfqId], references: [id])
+  quotation               RFQResponse?        @relation("OrderQuotation", fields: [quotationId], references: [id])
+  buyer                   User                @relation(fields: [buyerId], references: [id], onDelete: Cascade)
+  supplier                Supplier            @relation(fields: [supplierId], references: [id])
+
+  @@index([buyerId])
+  @@index([supplierId])
+  @@index([rfqId])
+  @@index([quotationId])
+  @@index([status])
+  @@index([orderNumber])
+  @@index([createdAt])
+  @@index([deletedAt])
+  @@map("orders")
+}
+
+model OrderDeliveryDetail {
+  id            String   @id @default(uuid())
+  orderId       String   @unique
+  fullName      String
+  companyName   String?
+  phone         String
+  email         String
+  addressLine1  String
+  addressLine2  String?
+  city          String
+  state         String
+  postalCode    String
+  country       String
+  taxId         String?
+  instructions  String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  order         Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+  @@map("order_delivery_details")
+}
+
+model SupplierCertification {
+  id         String    @id @default(uuid())
+  supplierId String
+  type       String
+  number     String?
+  issuedBy   String?
+  issuedDate DateTime?
+  expiryDate DateTime?
+  document   String?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  supplier   Supplier  @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+
+  @@index([supplierId])
+  @@index([type])
+  @@map("supplier_certifications")
+}
+
+model SupplierCompliance {
+  id         String   @id @default(uuid())
+  supplierId String   @unique
+  whoGmp     Boolean  @default(false)
+  fda        Boolean  @default(false)
+  iso        Boolean  @default(false)
+  dmf        Boolean  @default(false)
+  coa        Boolean  @default(false)
+  auditTrail Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  supplier   Supplier @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+
+  @@map("supplier_compliance")
+}
+
+model SupplierManufacturingCapability {
+  id                  String   @id @default(uuid())
+  supplierId          String   @unique
+  dosageForms         String[]
+  productionCapacity  String?
+  packagingTypes      String[]
+  coldChain           Boolean  @default(false)
+  minOrderTerms       String?
+  exportMarkets       String[]
+  regulatoryApprovals String[]
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  supplier            Supplier @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+
+  @@map("supplier_manufacturing_capabilities")
+}
+
+model ProductImage {
+  id        String   @id @default(uuid())
+  productId String
+  url       String
+  alt       String?
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+  @@map("product_images")
+}
+
+model ProductCertification {
+  id         String    @id @default(uuid())
+  productId  String
+  type       String
+  number     String?
+  issuedBy   String?
+  issuedDate DateTime?
+  expiryDate DateTime?
+  document   String?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  product    Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+  @@index([type])
+  @@map("product_certifications")
+}
+
+model ProductCompliance {
+  id        String   @id @default(uuid())
+  productId String   @unique
+  whoGmp    Boolean  @default(false)
+  fda       Boolean  @default(false)
+  iso       Boolean  @default(false)
+  dmf       Boolean  @default(false)
+  coa       Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@map("product_compliance")
+}
+
+model RFQItem {
+  id          String   @id @default(uuid())
+  rfqId       String
+  productId   String?
+  productName String
+  quantity    String?
+  unit        String?
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  product     Product? @relation(fields: [productId], references: [id])
+  rfq         RFQ      @relation(fields: [rfqId], references: [id], onDelete: Cascade)
+
+  @@index([rfqId])
+  @@index([productId])
+  @@map("rfq_items")
+}
+
+model RFQResponse {
+  id                  String               @id @default(uuid())
+  rfqId               String
+  supplierId          String
+  totalAmount         Decimal?             @db.Decimal(10, 2)
+  currency            String?              @default("USD")
+  validity            DateTime?
+  notes               String?
+  isAccepted          Boolean              @default(false)
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  adminNotes          String?
+  status              QuotationStatus      @default(DRAFT)
+  adminFinalPrice     Decimal?             @db.Decimal(10, 2)
+  supplierPrice       Decimal?             @db.Decimal(10, 2)
+  marginPercent       Decimal?             @db.Decimal(5, 2)
+  buyerRequestedPrice Decimal?             @db.Decimal(10, 2)
+  negotiationMessage  String?
+  negotiationRequested Boolean            @default(false)
+  sentToBuyerAt       DateTime?
+  revisionRequestedAt DateTime?
+  revisionNote        String?
+  revisionBy          String?
+  supplierCounterPrice        Decimal?             @db.Decimal(10, 2)
+  supplierNegotiationResponse String?             // ACCEPTED | COUNTERED | REJECTED
+  buyerQuotation      BuyerQuotation?
+  items               RFQResponseItem[]
+  negotiationHistory  NegotiationHistory[]
+  rfq                 RFQ                  @relation(fields: [rfqId], references: [id], onDelete: Cascade)
+  supplier            Supplier             @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  rfqAsSelected       RFQ[]                @relation("SelectedQuotation")
+  payments            Payment[]            @relation("QuotationPayments")
+  orders              Order[]              @relation("OrderQuotation")
+  history             RFQHistory[]         @relation("ResponseHistory")
+
+  @@index([rfqId])
+  @@index([supplierId])
+  @@index([status])
+  @@index([createdAt])
+  @@index([sentToBuyerAt])
+  @@map("rfq_responses")
+}
+
+model BuyerQuotation {
+  id            String               @id @default(uuid())
+  rfqResponseId String               @unique
+  rfqId         String
+  buyerId       String
+  supplierId    String
+  totalAmount   Decimal?             @db.Decimal(10, 2)
+  currency      String?              @default("USD")
+  validity      DateTime?
+  notes         String?
+  isAccepted    Boolean              @default(false)
+  createdAt     DateTime             @default(now())
+  updatedAt     DateTime             @updatedAt
+  items         BuyerQuotationItem[]
+  buyer         User                 @relation(fields: [buyerId], references: [id], onDelete: Cascade)
+  rfq           RFQ                  @relation(fields: [rfqId], references: [id], onDelete: Cascade)
+  rfqResponse   RFQResponse          @relation(fields: [rfqResponseId], references: [id], onDelete: Cascade)
+  supplier      Supplier             @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+
+  @@index([rfqId])
+  @@index([buyerId])
+  @@index([supplierId])
+  @@index([createdAt])
+  @@map("buyer_quotations")
+}
+
+model BuyerQuotationItem {
+  id               String         @id @default(uuid())
+  buyerQuotationId String
+  productId        String?
+  productName      String
+  quantity         String?
+  unit             String?
+  unitPrice        Decimal?       @db.Decimal(10, 2)
+  totalPrice       Decimal?       @db.Decimal(10, 2)
+  leadTime         String?
+  notes            String?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  buyerQuotation   BuyerQuotation @relation(fields: [buyerQuotationId], references: [id], onDelete: Cascade)
+  product          Product?       @relation(fields: [productId], references: [id])
+
+  @@index([buyerQuotationId])
+  @@index([productId])
+  @@map("buyer_quotation_items")
+}
+
+model RFQResponseItem {
+  id            String      @id @default(uuid())
+  rfqResponseId String
+  rfqItemId     String?
+  productId     String?
+  productName   String
+  quantity      String?
+  unit          String?
+  unitPrice     Decimal?    @db.Decimal(10, 2)
+  totalPrice    Decimal?    @db.Decimal(10, 2)
+  leadTime      String?
+  notes         String?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  product       Product?    @relation(fields: [productId], references: [id])
+  rfqResponse   RFQResponse @relation(fields: [rfqResponseId], references: [id], onDelete: Cascade)
+
+  @@index([rfqResponseId])
+  @@index([productId])
+  @@map("rfq_response_items")
+}
+
+model OrderItem {
+  id          String   @id @default(uuid())
+  orderId     String
+  productId   String?
+  productName String
+  quantity    Int
+  unit        String?
+  unitPrice   Decimal  @db.Decimal(10, 2)
+  totalPrice  Decimal  @db.Decimal(10, 2)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product     Product? @relation(fields: [productId], references: [id])
+
+  @@index([orderId])
+  @@index([productId])
+  @@map("order_items")
+}
+
+model SavedProduct {
+  id        String   @id @default(uuid())
+  userId    String
+  productId String
+  createdAt DateTime @default(now())
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, productId])
+  @@index([userId])
+  @@index([productId])
+  @@map("saved_products")
+}
+
+model AccessRequest {
+  id          String   @id @default(uuid())
+  userId      String?  @unique
+  companyName String
+  email       String
+  phone       String?
+  country     String?
+  message     String?
+  status      String   @default("PENDING")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  user        User?    @relation(fields: [userId], references: [id])
+
+  @@index([email])
+  @@index([status])
+  @@index([createdAt])
+  @@map("access_requests")
+}
+
+model CompanyInfo {
+  id              String   @id @default(uuid())
+  userId          String   @unique
+  companyName     String?
+  gstTaxId        String?
+  drugLicenseNo  String?
+  businessType    String?  // e.g., "Wholesaler", "Retailer", "Manufacturer", "Distributor"
+  website         String?
+  documents       Json?    // Array of document URLs/names
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("company_info")
+}
+
+model Address {
+  id          String   @id @default(uuid())
+  userId      String
+  label       String?  // e.g., "Home", "Office", "Warehouse"
+  fullName    String
+  companyName String?
+  phone       String
+  email       String?
+  addressLine1 String
+  addressLine2 String?
+  city        String
+  state       String
+  postalCode  String
+  country     String
+  isDefault   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([isDefault])
+  @@map("addresses")
+}
+
+model UserSettings {
+  id            String   @id @default(uuid())
+  userId        String   @unique
+  language      String   @default("en")
+  currency      String   @default("USD")
+  timezone      String   @default("UTC")
+  notifications Json?
+  preferences   Json?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_settings")
+}
+
+model SystemSettings {
+  id             String   @id @default(uuid())
+  key            String   @unique
+  value          Json
+  description    String?
+  category       String   @default("general")
+  lastModifiedBy String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([key])
+  @@index([category])
+  @@map("system_settings")
+}
+
+model Notification {
+  id        String    @id @default(uuid())
+  userId    String
+  type      String
+  title     String
+  message   String
+  link      String?
+  isRead    Boolean   @default(false)
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([isRead])
+  @@index([createdAt])
+  @@map("notifications")
+}
+
+model ActivityLog {
+  id          String   @id @default(uuid())
+  userId      String?
+  userRole    String?
+  action      String
+  entityType  String
+  entityId    String?
+  description String?
+  metadata    Json?
+  ipAddress   String?
+  userAgent   String?
+  createdAt   DateTime @default(now())
+
+  @@index([userId])
+  @@index([entityType, entityId])
+  @@index([createdAt])
+  @@map("activity_logs")
+}
+
+model Payment {
+  id              String        @id @default(uuid())
+  rfqId           String
+  quotationId     String
+  buyerId         String
+  amount          Decimal       @db.Decimal(10, 2)
+  currency        String        @default("USD")
+  paymentType     PaymentType
+  status          PaymentStatus @default(PENDING)
+  transactionId   String?       @unique
+  gateway         String?
+  gatewayResponse Json?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  confirmedAt     DateTime?
+  rfq             RFQ           @relation("RFQPayments", fields: [rfqId], references: [id], onDelete: Cascade)
+  quotation       RFQResponse   @relation("QuotationPayments", fields: [quotationId], references: [id], onDelete: Cascade)
+  buyer           User          @relation("PaymentBuyer", fields: [buyerId], references: [id], onDelete: Cascade)
+
+  @@index([buyerId])
+  @@index([rfqId])
+  @@index([quotationId])
+  @@index([status])
+  @@index([transactionId])
+  @@index([createdAt])
+  @@map("payments")
+}
+
+model PaymentTransaction {
+  id              String        @id @default(uuid())
+  rfqId           String?
+  orderId         String?
+  userId          String
+  amount          Decimal       @db.Decimal(10, 2)
+  currency        String        @default("USD")
+  paymentType     PaymentType
+  status          PaymentStatus @default(PENDING)
+  transactionId   String?       @unique
+  gateway         String?
+  gatewayResponse Json?
+  refundAmount    Decimal?      @db.Decimal(10, 2)
+  refundReason    String?
+  refundedAt      DateTime?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([rfqId])
+  @@index([orderId])
+  @@index([status])
+  @@index([transactionId])
+  @@index([createdAt])
+  @@map("payment_transactions")
+}
+
+model ShipmentDetail {
+  id               String    @id @default(uuid())
+  orderId          String    @unique
+  trackingNumber   String?
+  carrier          String?
+  shippedAt        DateTime?
+  expectedDelivery DateTime?
+  deliveredAt      DateTime?
+  invoiceUrl       String?
+  lrUrl            String?
+  notes            String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  order            Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+  @@index([trackingNumber])
+  @@map("shipment_details")
+}
+
+model NegotiationHistory {
+  id          String           @id @default(uuid())
+  quotationId String
+  actor       NegotiationActor
+  message     String?
+  price       Decimal?         @db.Decimal(10, 2)
+  createdAt   DateTime         @default(now())
+  quotation   RFQResponse      @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+
+  @@index([quotationId])
+  @@index([createdAt])
+  @@map("negotiation_history")
+}
+
+enum NegotiationActor {
+  BUYER
+  ADMIN
+  SUPPLIER
+}
+
+model Category {
+  id          String            @id @default(uuid())
+  name        String            @unique
+  slug        String            @unique
+  description String?
+  parentId    String?
+  order       Int               @default(0)
+  isActive    Boolean           @default(true)
+  deletedAt   DateTime?
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  parent      Category?         @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  children    Category[]        @relation("CategoryHierarchy")
+  products    ProductCategory[]
+
+  @@index([slug])
+  @@index([parentId])
+  @@index([isActive])
+  @@index([deletedAt])
+  @@map("categories")
+}
+
+model ProductCategory {
+  id         String   @id @default(uuid())
+  productId  String
+  categoryId String
+  createdAt  DateTime @default(now())
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, categoryId])
+  @@index([productId])
+  @@index([categoryId])
+  @@map("product_categories")
+}
+
+enum UserRole {
+  SUPER_ADMIN
+  ADMIN
+  SUPPORT_ADMIN
+  READ_ONLY_ADMIN
+  VENDOR
+  BUYER
+}
+
+enum RFQStatus {
+  DRAFT
+  OPEN
+  SENT
+  RESPONDED
+  QUOTED
+  NEGOTIATION
+  CONFIRMED
+  AWAITING_PAYMENT
+  QUOTATION_ACCEPTED
+  IN_PROGRESS
+  SHIPPED
+  COMPLETED
+  ACCEPTED
+  REJECTED
+  EXPIRED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  PENDING
+  PARTIAL
+  PAID
+  FAILED
+  REFUNDED
+}
+
+enum PaymentType {
+  FULL
+  ADVANCE
+  PARTIAL
+  REMAINING
+}
+
+enum QuotationStatus {
+  DRAFT
+  SUBMITTED
+  UNDER_REVIEW
+  ACCEPTED
+  REJECTED
+  SENT_TO_BUYER
+  NEGOTIATION_REQUESTED
+  NEGOTIATION_SENT_TO_SUPPLIER
+  SUPPLIER_COUNTER_OFFER
+  REVISION_REQUESTED
+  SENT_BACK_TO_SUPPLIER
+  BUYER_ACCEPTED
+  CONFIRMED
+}
+
+enum HistoryAction {
+  RFQ_CREATED
+  SUPPLIER_SUBMITTED
+  ADMIN_APPROVED
+  SENT_TO_BUYER
+  NEGOTIATION_SENT_TO_SUPPLIER
+  BUYER_ACCEPTED
+  BUYER_REJECTED
+  BUYER_REQUESTED_LOWER_PRICE
+  ORDER_CREATED
+}
+
+enum OrderStatus {
+  PENDING
+  PENDING_DELIVERY_DETAILS
+  PENDING_SUPPLIER
+  CONFIRMED
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+}
+
+enum ProductAvailability {
+  IN_STOCK
+  MADE_TO_ORDER
+  OUT_OF_STOCK
+}
+
+enum DosageForm {
+  TABLET
+  CAPSULE
+  INJECTABLE
+  SYRUP
+  SUSPENSION
+  CREAM
+  OINTMENT
+  DROPS
+  SPRAY
+  OTHER
+}

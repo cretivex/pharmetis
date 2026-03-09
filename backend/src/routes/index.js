@@ -1,0 +1,51 @@
+import express from 'express';
+import authRoutes from '../modules/auth/auth.routes.js';
+import productsRoutes from '../modules/products/products.routes.js';
+import suppliersRoutes from '../modules/suppliers/suppliers.routes.js';
+import rfqsRoutes from '../modules/rfqs/rfqs.routes.js';
+import supplierRoutes from '../modules/supplier/supplier.routes.js';
+import rfqResponsesRoutes from '../modules/rfq-responses/rfq-responses.routes.js';
+import buyerRoutes from '../modules/buyer/buyer.routes.js';
+import savedProductsRoutes from '../modules/saved-products/saved-products.routes.js';
+import usersRoutes from '../modules/users/users.routes.js';
+import dashboardRoutes from '../modules/dashboard/dashboard.routes.js';
+import analyticsRoutes from '../modules/analytics/analytics.routes.js';
+import systemSettingsRoutes from '../modules/system-settings/system-settings.routes.js';
+import categoriesRoutes from '../modules/categories/categories.routes.js';
+import paymentsRoutes from '../modules/payments/payments.routes.js';
+import checkoutRoutes from '../modules/checkout/checkout.routes.js';
+import notificationsRoutes from '../modules/notifications/notifications.routes.js';
+import buyersRoutes from '../modules/buyers/buyers.routes.js';
+import filtersRoutes from '../modules/filters/filters.routes.js';
+import auditLogsRoutes from '../modules/audit-logs/audit-logs.routes.js';
+import systemRoutes from '../modules/system/system.routes.js';
+import exchangeRatesRoutes from '../modules/exchange-rates/exchange-rates.routes.js';
+import healthRoutes from '../modules/health/health.routes.js';
+
+const router = express.Router();
+
+router.use('/health', healthRoutes);
+router.use('/auth', authRoutes);
+// Register /products/save BEFORE /products to avoid route conflict
+router.use('/products/save', savedProductsRoutes);
+router.use('/products', productsRoutes);
+router.use('/suppliers', suppliersRoutes);
+router.use('/rfqs', rfqsRoutes);
+router.use('/supplier', supplierRoutes);
+router.use('/rfq-responses', rfqResponsesRoutes);
+router.use('/buyer', buyerRoutes);
+router.use('/users', usersRoutes);
+router.use('/dashboard', dashboardRoutes);
+router.use('/analytics', analyticsRoutes);
+router.use('/system-settings', systemSettingsRoutes);
+router.use('/categories', categoriesRoutes);
+router.use('/payments', paymentsRoutes);
+router.use('/checkout', checkoutRoutes);
+router.use('/notifications', notificationsRoutes);
+router.use('/admin/buyers', buyersRoutes);
+router.use('/admin/audit-logs', auditLogsRoutes);
+router.use('/system', systemRoutes);
+router.use('/exchange-rates', exchangeRatesRoutes);
+router.use('/filters', filtersRoutes);
+
+export default router;

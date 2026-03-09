@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg width="3840" height="2160" viewBox="0 0 3840 2160" 
+     xmlns="http://www.w3.org/2000/svg">
+
+  <!-- Transparent background -->
+  
+  <!-- Logo Text -->
+  <text x="400" y="1200"
+        font-family="Poppins, Montserrat, Arial, sans-serif"
+        font-size="600"
+        font-weight="700"
+        fill="#0B1F35"
+        letter-spacing="5">
+    pharmetis
+  </text>
+
+  <!-- Capsule Icon -->
+  <g transform="translate(3000,650) rotate(25)">
+    <!-- Capsule body -->
+    <rect x="0" y="0" rx="120" ry="120"
+          width="350" height="180"
+          fill="#0B1F35"/>
+    
+    <!-- Capsule split line -->
+    <line x1="175" y1="0" x2="175" y2="180"
+          stroke="white"
+          stroke-width="8"/>
+    
+    <!-- Medical cross -->
+    <rect x="235" y="55" width="30" height="70" fill="white"/>
+    <rect x="215" y="75" width="70" height="30" fill="white"/>
+  </g>
+
+</svg>
