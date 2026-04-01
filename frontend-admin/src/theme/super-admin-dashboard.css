@@ -1,0 +1,25 @@
+/**
+ * Super Admin Dashboard — layout & semantic spacing (Figma-friendly naming)
+ * Map: --dash-* → use in Tailwind arbitrary values or components
+ */
+:root {
+  /* 8px base grid */
+  --dash-space-xs: 0.25rem;
+  --dash-space-sm: 0.5rem;
+  --dash-space-md: 1rem;
+  --dash-space-lg: 1.5rem;
+  --dash-space-xl: 2rem;
+  --dash-space-2xl: 3rem;
+
+  /* Regions */
+  --dash-header-min-h: 5.5rem;
+  --dash-kpi-min-h: 7.25rem;
+  --dash-panel-radius: var(--radius);
+  --dash-grid-gap: 1rem;
+  --dash-max-content: 1600px;
+
+  /* Semantic surfaces */
+  --dash-surface-elevated: hsl(var(--card) / 0.85);
+  --dash-surface-muted: hsl(var(--muted) / 0.45);
+  --dash-border-subtle: hsl(var(--border) / 0.5);
+}

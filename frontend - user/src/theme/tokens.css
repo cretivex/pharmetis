@@ -1,0 +1,37 @@
+/**
+ * Pharmetis User App — design tokens (Figma-friendly naming)
+ * Spacing: 4px grid · Radii: 12–16px default · Type: display + body
+ */
+:root {
+  --font-display: 'Plus Jakarta Sans', 'Inter', system-ui, sans-serif;
+  --font-body: 'Inter', system-ui, sans-serif;
+
+  --background: #ffffff;
+  --foreground: #0f172a;
+  --muted: #f8fafc;
+  --muted-foreground: #64748b;
+  --border: #e2e8f0;
+  --card: #ffffff;
+  --ring: #171717;
+
+  --radius-sm: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.25rem;
+  --radius-2xl: 1.5rem;
+
+  /* Layout rhythm (align Tailwind spacing) */
+  --space-section-y: 4rem;
+  --space-section-y-sm: 3rem;
+  --container-max: 80rem; /* max-w-7xl */
+}
+
+.dark {
+  --background: #0f172a;
+  --foreground: #f8fafc;
+  --muted: #1e293b;
+  --muted-foreground: #94a3b8;
+  --border: #334155;
+  --card: #1e293b;
+  --ring: #e2e8f0;
+}

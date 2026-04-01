@@ -1,0 +1,49 @@
+@import './theme/variables.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  html {
+    scroll-behavior: smooth;
+  }
+  html.light {
+    color-scheme: light;
+  }
+  html.dark {
+    color-scheme: dark;
+  }
+  body {
+    @apply min-h-screen overflow-x-hidden antialiased;
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+    font-feature-settings: 'rlig' 1, 'calt' 1;
+  }
+  ::selection {
+    @apply bg-primary/15 text-foreground;
+  }
+}
+
+@layer utilities {
+  /* Page rhythm: 4 / 6 / 8 / 10 / 12 (×0.25rem) */
+  .supplier-page {
+    @apply px-4 sm:px-6 lg:px-8;
+  }
+  .supplier-section-title {
+    @apply text-xl font-semibold tracking-tight text-foreground sm:text-2xl;
+  }
+  .supplier-section-sub {
+    @apply mt-1 text-sm text-muted-foreground;
+  }
+  .supplier-stat-card {
+    @apply relative overflow-hidden rounded-2xl border border-border/60 bg-card p-6 shadow-card transition duration-200 hover:border-primary/15 hover:shadow-card-hover;
+  }
+  .supplier-stat-card::before {
+    content: '';
+    @apply pointer-events-none absolute -right-6 -top-6 h-24 w-24 rounded-full bg-primary/[0.06];
+  }
+}

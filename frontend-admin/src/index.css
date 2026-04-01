@@ -1,0 +1,78 @@
+@import './theme/variables.css';
+@import './theme/super-admin-dashboard.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  html {
+    scroll-behavior: smooth;
+    -webkit-tap-highlight-color: transparent;
+  }
+  body {
+    @apply min-h-screen overflow-x-hidden bg-background text-foreground antialiased;
+    font-feature-settings: 'rlig' 1, 'calt' 1, 'ss01' 1;
+  }
+  ::selection {
+    @apply bg-primary/25 text-foreground;
+  }
+}
+
+@layer utilities {
+  .text-numeric {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: 'tnum';
+  }
+
+  /* Subtle grid for hero / auth panels */
+  .bg-grid-pattern {
+    background-image:
+      linear-gradient(to right, hsl(var(--border) / 0.35) 1px, transparent 1px),
+      linear-gradient(to bottom, hsl(var(--border) / 0.35) 1px, transparent 1px);
+    background-size: 48px 48px;
+  }
+
+  .glass-card {
+    @apply border border-border/50 bg-card/70 shadow-2xl backdrop-blur-xl;
+  }
+
+  /* Page shell: max width + horizontal padding (8px grid) */
+  .admin-page {
+    @apply mx-auto w-full max-w-[1600px] px-4 pb-10 pt-6 sm:px-6 lg:px-8 lg:pb-12 lg:pt-8;
+  }
+
+  .admin-page-header {
+    @apply mb-8 flex flex-col gap-1 sm:mb-10;
+  }
+
+  .admin-page-title {
+    @apply text-2xl font-semibold tracking-tight text-foreground sm:text-3xl;
+  }
+
+  .admin-page-desc {
+    @apply max-w-2xl text-sm text-muted-foreground sm:text-base;
+  }
+
+  /* Stat / content grid */
+  .admin-grid-stats {
+    @apply grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4;
+  }
+
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--muted)) transparent;
+  }
+}
+
+@layer components {
+  .panel-base {
+    @apply rounded-2xl border border-border/60 bg-card/40;
+  }
+  .panel-section {
+    @apply rounded-xl border border-border/40 bg-muted/20;
+  }
+}
