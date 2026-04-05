@@ -19,6 +19,7 @@ export const getUserProfileService = async (userId) => {
       avatar: true,
       profile_image: true,
       emailVerified: true,
+      kycStatus: true,
       role: true,
       createdAt: true,
       updatedAt: true,
@@ -62,7 +63,7 @@ export const getUserProfileService = async (userId) => {
 
 // Update user profile
 export const updateUserProfileService = async (userId, data) => {
-  const { email, fullName, companyName, phone, country, city } = data;
+  const { email, fullName, companyName, phone, country, city, kycStatus } = data;
 
   const user = await prisma.user.findUnique({
     where: { id: userId }
@@ -91,6 +92,7 @@ export const updateUserProfileService = async (userId, data) => {
   if (phone !== undefined) updateData.phone = phone || null;
   if (country !== undefined) updateData.country = country || null;
   if (city !== undefined) updateData.city = city || null;
+  if (kycStatus !== undefined) updateData.kycStatus = kycStatus || null;
   if (data.avatar !== undefined) updateData.avatar = data.avatar || null;
   if (data.profile_image !== undefined) {
     updateData.profile_image = data.profile_image || null;

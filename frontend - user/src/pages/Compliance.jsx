@@ -287,6 +287,33 @@ export default function Compliance() {
         </Stagger>
       </MotionSection>
 
+      <MotionSection className="border-b border-slate-200/80 bg-slate-50/90 py-8 md:py-10">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm md:flex-row md:items-center md:justify-between md:p-6">
+            <div className="min-w-0">
+              <h2 className="text-lg font-bold text-slate-950">Downloadable compliance resources</h2>
+              <p className="mt-1 text-sm text-slate-600">
+                Guides and checklists for import/export, GDP, and documentation—updated as regulations evolve.
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Link
+                to="/resources"
+                className="inline-flex items-center rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700"
+              >
+                Resources hub
+              </Link>
+              <Link
+                to="/guides/compliance-guides"
+                className="inline-flex items-center rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-800 transition hover:bg-slate-50"
+              >
+                Compliance guides
+              </Link>
+            </div>
+          </div>
+        </div>
+      </MotionSection>
+
       {/* —— Verification timeline —— */}
       <MotionSection className="relative border-y border-slate-200/80 bg-white py-10 md:py-12">
         <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(248,250,252,0)_0%,rgba(241,245,249,0.5)_50%,rgba(248,250,252,0)_100%)]" />

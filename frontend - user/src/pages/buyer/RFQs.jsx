@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { FileText, Plus, Eye, Search } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
-import Loading from '../../components/ui/Loading'
+import BuyerTableSkeleton from '../../components/skeletons/BuyerTableSkeleton'
 import EmptyState from '../../components/ui/EmptyState'
 import ErrorState from '../../components/ui/ErrorState'
 import { rfqService } from '../../services/rfq.service'
@@ -119,11 +119,7 @@ function RFQs() {
         </div>
       </div>
 
-      {loading && (
-        <div className="rounded-xl border border-blue-200 bg-white py-12">
-          <Loading message="Loading RFQs..." />
-        </div>
-      )}
+      {loading && <BuyerTableSkeleton rows={8} />}
 
       {error && !loading && (
         <div className="rounded-xl border border-blue-200 bg-white py-12">

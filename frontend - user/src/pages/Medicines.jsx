@@ -1,15 +1,20 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
-import { Package } from 'lucide-react'
+import { useQuery } from '@tanstack/react-query'
+import { Package, ChevronLeft, ChevronRight } from 'lucide-react'
 import MedicinesListingToolbar from '../components/medicines/MedicinesListingToolbar'
 import MedicinesSidebar from '../components/medicines/MedicinesSidebar'
 import MedicinesProductGrid from '../components/medicines/MedicinesProductGrid'
+import MedicineCardSkeleton from '../components/medicines/MedicineCardSkeleton'
 import Loading from '../components/ui/Loading'
 import EmptyState from '../components/ui/EmptyState'
 import ErrorState from '../components/ui/ErrorState'
 import { productsService } from '../services/products.service.js'
 import { filterService } from '../services/filter.service.js'
 import { transformProduct } from '../utils/dataTransform.js'
+import { useDebouncedValue } from '../hooks/useDebouncedValue.js'
+
+const PAGE_SIZE = 20
 
 const AVAILABILITY_LABELS = {
   IN_STOCK: 'In Stock',
@@ -42,33 +47,35 @@ function parseFiltersFromSearchParams(searchParams) {
     manufacturer: getArray('manufacturer'),
     availability: getArray('availability'),
     categoryIds: getArray('categoryIds'),
+    certification: getArray('certification'),
+    minPrice: searchParams.get('minPrice') || '',
+    maxPrice: searchParams.get('maxPrice') || '',
+    minMoq: searchParams.get('moq') || '',
+    categorySlug: searchParams.get('category') || '',
   }
 }
 
-function parseMoqForSort(moq) {
-  if (moq == null || moq === '') return Infinity
-  const s = String(moq).toLowerCase()
-  if (s.includes('contact')) return Infinity
-  const m = s.match(/[\d][\d,]*/)
-  if (!m) return Infinity
-  return parseInt(m[0].replace(/,/g, ''), 10) || 0
+function parsePage(searchParams) {
+  const p = parseInt(searchParams.get('page') || '1', 10)
+  return Number.isFinite(p) && p >= 1 ? p : 1
 }
 
-function ratingScoreForSort(id) {
-  const n = Number(id) || 0
-  return 4 + (n % 6) / 10
-}
-
-function buildSearchParams(filters, searchQuery, sortBy) {
+function buildSearchParams(filters, searchQuery, sortBy, page) {
   const params = new URLSearchParams()
   if (searchQuery && searchQuery.trim()) params.set('search', searchQuery.trim())
   if (sortBy && sortBy !== 'relevance') params.set('sort', sortBy)
+  if (page > 1) params.set('page', String(page))
   filters.dosageForm.forEach((v) => params.append('dosageForm', v))
   filters.country.forEach((v) => params.append('country', v))
   filters.therapeuticAreas.forEach((v) => params.append('therapeuticAreas', v))
   filters.manufacturer.forEach((v) => params.append('manufacturer', v))
   filters.availability.forEach((v) => params.append('availability', v))
   filters.categoryIds.forEach((v) => params.append('categoryIds', v))
+  filters.certification.forEach((v) => params.append('certification', v))
+  if (filters.minPrice) params.set('minPrice', filters.minPrice)
+  if (filters.maxPrice) params.set('maxPrice', filters.maxPrice)
+  if (filters.minMoq) params.set('moq', filters.minMoq)
+  if (filters.categorySlug) params.set('category', filters.categorySlug)
   return params
 }
 
@@ -78,8 +85,9 @@ function Medicines() {
   const [filterMetadata, setFilterMetadata] = useState(null)
   const [filtersLoading, setFiltersLoading] = useState(true)
   const [filters, setFilters] = useState(() => parseFiltersFromSearchParams(searchParams))
-  const [searchQuery, setSearchQuery] = useState(() => searchParams.get('search') || '')
+  const [searchInput, setSearchInput] = useState(() => searchParams.get('search') || '')
   const [sortBy, setSortBy] = useState(() => searchParams.get('sort') || 'relevance')
+  const [page, setPage] = useState(() => parsePage(searchParams))
   const [view, setView] = useState('grid')
   const [showMobileFilters, setShowMobileFilters] = useState(false)
   const [expandedSections, setExpandedSections] = useState({
@@ -89,19 +97,18 @@ function Medicines() {
     availability: false,
     manufacturer: false,
     therapeuticAreas: false,
+    certification: false,
+    price: false,
+    moq: false,
   })
-  const [products, setProducts] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
+
+  const debouncedSearch = useDebouncedValue(searchInput, 500)
 
   useEffect(() => {
     filterService
       .getMedicinesFilters()
-      .then((data) => {
-        setFilterMetadata(data)
-      })
+      .then((data) => setFilterMetadata(data))
       .catch(() => {
-        // Degrade gracefully: still load products; sidebar uses empty filter lists
         setFilterMetadata({
           dosageForm: [],
           availability: [],
@@ -111,118 +118,122 @@ function Medicines() {
           categories: [],
         })
       })
-      .finally(() => {
-        setFiltersLoading(false)
-      })
+      .finally(() => setFiltersLoading(false))
   }, [])
 
   useEffect(() => {
     const next = parseFiltersFromSearchParams(searchParams)
     setFilters(next)
-    setSearchQuery(searchParams.get('search') || '')
+    setSearchInput(searchParams.get('search') || '')
     setSortBy(searchParams.get('sort') || 'relevance')
+    setPage(parsePage(searchParams))
   }, [searchParams])
 
   useEffect(() => {
-    if (filtersLoading) return
-    loadProducts()
-  }, [filtersLoading, filters, searchQuery, sortBy])
+    setSearchParams((prev) => {
+      const p = new URLSearchParams(prev)
+      const next = debouncedSearch.trim()
+      const cur = p.get('search') || ''
+      if (next === cur) return p
+      if (next) p.set('search', next)
+      else p.delete('search')
+      p.delete('page')
+      return p
+    }, { replace: true })
+  }, [debouncedSearch, setSearchParams])
 
-  const loadProducts = async () => {
-    try {
-      setLoading(true)
-      setError(null)
-      const apiFilters = {
-        search: searchQuery?.trim() || undefined,
+  const catalogQuery = useQuery({
+    queryKey: [
+      'medicines-catalog',
+      {
+        filters,
+        search: debouncedSearch.trim(),
+        sort: sortBy,
+        page,
+      },
+    ],
+    queryFn: async () => {
+      const result = await productsService.getFilter({
+        search: debouncedSearch.trim() || undefined,
         dosageForm: filters.dosageForm.length ? filters.dosageForm : undefined,
         availability: filters.availability.length ? filters.availability : undefined,
         country: filters.country.length ? filters.country : undefined,
         therapeuticAreas: filters.therapeuticAreas.length ? filters.therapeuticAreas : undefined,
         manufacturer: filters.manufacturer.length ? filters.manufacturer : undefined,
         categoryIds: filters.categoryIds.length ? filters.categoryIds : undefined,
-        page: 1,
-        limit: 100,
+        certification: filters.certification.length ? filters.certification : undefined,
+        minPrice: filters.minPrice || undefined,
+        maxPrice: filters.maxPrice || undefined,
+        moq: filters.minMoq || undefined,
+        category: filters.categorySlug || undefined,
+        sort: sortBy !== 'relevance' ? sortBy : undefined,
+        page,
+        limit: PAGE_SIZE,
+      })
+      const rows = result?.data ?? []
+      return {
+        products: rows.map(transformProduct),
+        total: result?.total ?? 0,
+        page: result?.page ?? page,
+        totalPages: Math.max(1, result?.totalPages ?? 1),
       }
-      const result = await productsService.getAll(apiFilters)
-      const productsData = result?.products || result?.data?.products || []
-      setProducts(productsData.map(transformProduct))
-    } catch (err) {
-      setError(err.message || 'Failed to load products')
-    } finally {
-      setLoading(false)
-    }
-  }
+    },
+    enabled: !filtersLoading,
+  })
 
-  const filteredAndSortedProducts = useMemo(() => {
-    let filtered = [...products]
-    switch (sortBy) {
-      case 'price-low':
-        filtered.sort((a, b) => {
-          const priceA = Number(a.price) || 0
-          const priceB = Number(b.price) || 0
-          return priceA - priceB
-        })
-        break
-      case 'price-high':
-        filtered.sort((a, b) => {
-          const priceA = Number(a.price) || 0
-          const priceB = Number(b.price) || 0
-          return priceB - priceA
-        })
-        break
-      case 'moq-asc':
-        filtered.sort(
-          (a, b) => parseMoqForSort(a.moq) - parseMoqForSort(b.moq),
-        )
-        break
-      case 'rating-desc':
-        filtered.sort(
-          (a, b) => ratingScoreForSort(b.id) - ratingScoreForSort(a.id),
-        )
-        break
-      case 'newest':
-        filtered.sort((a, b) => {
-          const ta = a.createdAt ? new Date(a.createdAt).getTime() : 0
-          const tb = b.createdAt ? new Date(b.createdAt).getTime() : 0
-          if (tb !== ta) return tb - ta
-          return String(b.id).localeCompare(String(a.id), undefined, { numeric: true })
-        })
-        break
-      case 'name-asc':
-        filtered.sort((a, b) => (a.name || '').localeCompare(b.name || ''))
-        break
-      case 'name-desc':
-        filtered.sort((a, b) => (b.name || '').localeCompare(a.name || ''))
-        break
-      default:
-        break
-    }
-    return filtered
-  }, [products, sortBy])
+  const products = catalogQuery.data?.products ?? []
+  const totalPages = catalogQuery.data?.totalPages ?? 1
+  const safePage = catalogQuery.data?.page ?? page
 
-  const updateUrl = (nextFilters, nextSearch, nextSort) => {
-    const params = buildSearchParams(nextFilters, nextSearch, nextSort)
-    setSearchParams(params, { replace: true })
-  }
+  const updateUrl = useCallback(
+    (nextFilters, nextSearch, nextSort, nextPage = 1) => {
+      const params = buildSearchParams(nextFilters, nextSearch, nextSort, nextPage)
+      setSearchParams(params, { replace: true })
+    },
+    [setSearchParams],
+  )
 
   const toggleFilter = (key, value) => {
     setFilters((prev) => {
       const arr = prev[key] || []
       const next = arr.includes(value) ? arr.filter((v) => v !== value) : [...arr, value]
       const nextFilters = { ...prev, [key]: next }
-      updateUrl(nextFilters, searchQuery, sortBy)
+      updateUrl(nextFilters, debouncedSearch, sortBy, 1)
+      return nextFilters
+    })
+  }
+
+  const setCategorySlug = (slug) => {
+    setFilters((prev) => {
+      const nextFilters = { ...prev, categorySlug: slug || '' }
+      updateUrl(nextFilters, debouncedSearch, sortBy, 1)
+      return nextFilters
+    })
+  }
+
+  const setPriceRange = (minPrice, maxPrice) => {
+    setFilters((prev) => {
+      const nextFilters = { ...prev, minPrice: minPrice ?? '', maxPrice: maxPrice ?? '' }
+      updateUrl(nextFilters, debouncedSearch, sortBy, 1)
+      return nextFilters
+    })
+  }
+
+  const setMinMoq = (minMoq) => {
+    setFilters((prev) => {
+      const nextFilters = { ...prev, minMoq: minMoq ?? '' }
+      updateUrl(nextFilters, debouncedSearch, sortBy, 1)
       return nextFilters
     })
   }
 
   const handleSearchChange = (value) => {
-    setSearchQuery(value)
-    updateUrl(filters, value, sortBy)
+    setSearchInput(value)
   }
 
   const handleSortChange = (value) => {
     setSortBy(value)
-    updateUrl(filters, searchQuery, value)
+    updateUrl(filters, debouncedSearch, value, 1)
   }
 
   const handleResetFilters = () => {
@@ -233,17 +244,30 @@ function Medicines() {
       manufacturer: [],
       availability: [],
       categoryIds: [],
+      certification: [],
+      minPrice: '',
+      maxPrice: '',
+      minMoq: '',
+      categorySlug: '',
     }
     setFilters(empty)
-    setSearchQuery('')
+    setSearchInput('')
     setSortBy('relevance')
     setSearchParams(new URLSearchParams(), { replace: true })
   }
 
   const clearCategories = () => {
     setFilters((prev) => {
-      const next = { ...prev, categoryIds: [] }
-      updateUrl(next, searchQuery, sortBy)
+      const next = { ...prev, categoryIds: [], categorySlug: '' }
+      updateUrl(next, debouncedSearch, sortBy, 1)
+      return next
+    })
+  }
+
+  const clearCertifications = () => {
+    setFilters((prev) => {
+      const next = { ...prev, certification: [] }
+      updateUrl(next, debouncedSearch, sortBy, 1)
       return next
     })
   }
@@ -251,7 +275,7 @@ function Medicines() {
   const clearCountries = () => {
     setFilters((prev) => {
       const next = { ...prev, country: [] }
-      updateUrl(next, searchQuery, sortBy)
+      updateUrl(next, debouncedSearch, sortBy, 1)
       return next
     })
   }
@@ -262,18 +286,34 @@ function Medicines() {
 
   const activeFiltersCount = useMemo(() => {
     let n = 0
-    Object.values(filters).forEach((arr) => {
-      n += Array.isArray(arr) ? arr.length : 0
-    })
-    if (searchQuery?.trim()) n += 1
+    n += filters.dosageForm.length
+    n += filters.country.length
+    n += filters.therapeuticAreas.length
+    n += filters.manufacturer.length
+    n += filters.availability.length
+    n += filters.categoryIds.length
+    n += filters.certification.length
+    if (filters.minPrice) n += 1
+    if (filters.maxPrice) n += 1
+    if (filters.minMoq) n += 1
+    if (filters.categorySlug) n += 1
+    if (debouncedSearch?.trim()) n += 1
     return n
-  }, [filters, searchQuery])
+  }, [filters, debouncedSearch])
 
   const filterOnlyCount = useMemo(() => {
     let n = 0
-    Object.values(filters).forEach((arr) => {
-      n += Array.isArray(arr) ? arr.length : 0
-    })
+    n += filters.dosageForm.length
+    n += filters.country.length
+    n += filters.therapeuticAreas.length
+    n += filters.manufacturer.length
+    n += filters.availability.length
+    n += filters.categoryIds.length
+    n += filters.certification.length
+    if (filters.minPrice) n += 1
+    if (filters.maxPrice) n += 1
+    if (filters.minMoq) n += 1
+    if (filters.categorySlug) n += 1
     return n
   }, [filters])
 
@@ -283,6 +323,18 @@ function Medicines() {
   const handleViewDetails = (product) => {
     navigate(`/medicines/${product.slug || product.id}`)
   }
+
+  const goPage = (p) => {
+    const next = Math.max(1, Math.min(totalPages, p))
+    updateUrl(filters, debouncedSearch, sortBy, next)
+  }
+
+  const loading = catalogQuery.isPending
+  const error = catalogQuery.isError
+  const errMessage =
+    catalogQuery.error?.response?.data?.message ||
+    catalogQuery.error?.message ||
+    'Something went wrong. Please try again.'
 
   if (filtersLoading) {
     return (
@@ -304,7 +356,7 @@ function Medicines() {
   return (
     <div className="min-h-screen bg-[#f1f4f8] text-slate-900 antialiased">
       <MedicinesListingToolbar
-        searchQuery={searchQuery}
+        searchQuery={searchInput}
         onSearchChange={handleSearchChange}
         sortBy={sortBy}
         onSortChange={handleSortChange}
@@ -323,6 +375,10 @@ function Medicines() {
           toggleSection={toggleSection}
           onClearCategories={clearCategories}
           onClearCountries={clearCountries}
+          onCategorySlugChange={setCategorySlug}
+          onPriceRangeChange={setPriceRange}
+          onMinMoqChange={setMinMoq}
+          onClearCertifications={clearCertifications}
           showMobileFilters={showMobileFilters}
           onCloseMobileFilters={() => setShowMobileFilters(false)}
           dosageLabels={DOSAGE_LABELS}
@@ -332,28 +388,63 @@ function Medicines() {
         <div className="mt-6 min-w-0 flex-1 lg:mt-0">
           <h1 className="sr-only">Browse pharmaceutical products</h1>
           {loading ? (
-            <div className="rounded-2xl border border-slate-300/60 bg-[#e8ecf2] py-16 shadow-[inset_0_1px_0_rgba(255,255,255,0.5)]">
-              <Loading message="Loading products..." />
+            <div className="rounded-2xl border border-slate-300/60 bg-[#e8ecf2] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.5)] sm:p-5">
+              <MedicineCardSkeleton count={8} />
             </div>
           ) : error ? (
             <div className="rounded-2xl border border-slate-300/60 bg-white py-16 shadow-sm">
-              <ErrorState message={error} onRetry={loadProducts} retry="Retry" />
-            </div>
-          ) : filteredAndSortedProducts.length > 0 ? (
-            <div className="rounded-2xl border border-slate-300/60 bg-[#e8ecf2] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.6)] sm:p-5">
-              <MedicinesProductGrid
-                products={filteredAndSortedProducts}
-                view={view}
-                onSendRFQ={handleSendRFQ}
-                onViewDetails={handleViewDetails}
+              <ErrorState
+                message={errMessage}
+                onRetry={() => catalogQuery.refetch()}
+                retry="Retry"
               />
             </div>
+          ) : products.length > 0 ? (
+            <>
+              <div className="rounded-2xl border border-slate-300/60 bg-[#e8ecf2] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.6)] sm:p-5">
+                <MedicinesProductGrid
+                  products={products}
+                  view={view}
+                  onSendRFQ={handleSendRFQ}
+                  onViewDetails={handleViewDetails}
+                />
+              </div>
+              {totalPages > 1 && (
+                <nav
+                  className="mt-8 flex flex-wrap items-center justify-center gap-2 border-t border-slate-300/50 pt-6"
+                  aria-label="Products pagination"
+                >
+                  <button
+                    type="button"
+                    disabled={safePage <= 1}
+                    onClick={() => goPage(safePage - 1)}
+                    className="inline-flex items-center gap-1 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-800 shadow-sm transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    <ChevronLeft className="h-4 w-4" aria-hidden />
+                    Previous
+                  </button>
+                  <span className="px-3 text-sm text-slate-600">
+                    Page <span className="font-semibold text-slate-900">{safePage}</span> of{' '}
+                    <span className="font-semibold text-slate-900">{totalPages}</span>
+                  </span>
+                  <button
+                    type="button"
+                    disabled={safePage >= totalPages}
+                    onClick={() => goPage(safePage + 1)}
+                    className="inline-flex items-center gap-1 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-800 shadow-sm transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    Next
+                    <ChevronRight className="h-4 w-4" aria-hidden />
+                  </button>
+                </nav>
+              )}
+            </>
           ) : (
             <div className="rounded-2xl border border-slate-300/60 bg-white py-16 shadow-sm">
               <EmptyState
                 icon={Package}
-                title="No medicines found"
-                description="Try adjusting your filters or search query"
+                title="No products found. Try different filters."
+                description=""
                 actionLabel="Clear All Filters"
                 onAction={handleResetFilters}
               />

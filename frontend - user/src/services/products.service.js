@@ -16,6 +16,12 @@ export const productsService = {
     appendMulti('manufacturer', filters.manufacturer);
     appendMulti('categoryIds', filters.categoryIds);
     if (filters.sortBy) params.append('sortBy', filters.sortBy);
+    if (filters.sort) params.append('sort', filters.sort);
+    appendMulti('certification', filters.certification);
+    if (filters.minPrice != null && filters.minPrice !== '') params.append('minPrice', String(filters.minPrice));
+    if (filters.maxPrice != null && filters.maxPrice !== '') params.append('maxPrice', String(filters.maxPrice));
+    if (filters.moq != null && filters.moq !== '') params.append('moq', String(filters.moq));
+    if (filters.category) params.append('category', String(filters.category));
     if (filters.page) params.append('page', filters.page);
     if (filters.limit) params.append('limit', filters.limit);
 
@@ -29,6 +35,34 @@ export const productsService = {
       return body.data;
     }
     return body;
+  },
+
+  /** Flat catalog response: { data, total, page, totalPages } */
+  async getFilter(filters = {}) {
+    const params = new URLSearchParams();
+    if (filters.search) params.append('search', filters.search);
+    const appendMulti = (key, values) => {
+      const arr = Array.isArray(values) ? values : values ? [values] : [];
+      arr.forEach((v) => v != null && v !== '' && params.append(key, v));
+    };
+    appendMulti('dosageForm', filters.dosageForm);
+    appendMulti('availability', filters.availability);
+    appendMulti('country', filters.country);
+    appendMulti('therapeuticAreas', filters.therapeuticAreas);
+    appendMulti('manufacturer', filters.manufacturer);
+    appendMulti('categoryIds', filters.categoryIds);
+    appendMulti('certification', filters.certification);
+    if (filters.sort) params.append('sort', filters.sort);
+    if (filters.minPrice != null && filters.minPrice !== '') params.append('minPrice', String(filters.minPrice));
+    if (filters.maxPrice != null && filters.maxPrice !== '') params.append('maxPrice', String(filters.maxPrice));
+    if (filters.moq != null && filters.moq !== '') params.append('moq', String(filters.moq));
+    if (filters.category) params.append('category', String(filters.category));
+    if (filters.page) params.append('page', filters.page);
+    if (filters.limit) params.append('limit', filters.limit);
+
+    const queryString = params.toString();
+    const response = await api.get(`/products/filter${queryString ? `?${queryString}` : ''}`);
+    return response.data;
   },
 
   async getBySlug(slug) {

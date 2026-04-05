@@ -1,6 +1,7 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import { useNavigate } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
 import LandingHero from '../components/landing/LandingHero'
 import LandingTrustBar from '../components/landing/LandingTrustBar'
 import LandingHowWeVerify from '../components/landing/LandingHowWeVerify'
@@ -23,10 +24,28 @@ function Home() {
     availability: 'All',
   })
 
-  const [featuredProducts, setFeaturedProducts] = useState([])
-  const [suppliers, setSuppliers] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
+  const featuredQuery = useQuery({
+    queryKey: ['featured-products'],
+    queryFn: async () => {
+      const featured = await productsService.getFeatured()
+      const featuredData = Array.isArray(featured) ? featured : featured.data || []
+      return featuredData.map(transformProduct)
+    },
+  })
+
+  const suppliersQuery = useQuery({
+    queryKey: ['home-suppliers', { limit: 6, isVerified: true }],
+    queryFn: async () => {
+      const res = await suppliersService.getAll({ limit: 6, isVerified: true })
+      const suppliersList = res.data?.suppliers || res.suppliers || []
+      const transformed = suppliersList.map(transformSupplier)
+      return transformed.filter(
+        (supplier, index, self) => index === self.findIndex((s) => s.id === supplier.id)
+      )
+    },
+  })
+
+  const featuredProducts = featuredQuery.data ?? []
 
   useEffect(() => {
     if (hash === '#compliance') {
@@ -39,33 +58,6 @@ function Home() {
       document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
     })
   }, [hash, navigate])
-
-  useEffect(() => {
-    loadData()
-  }, [])
-
-  const loadData = async () => {
-    try {
-      setLoading(true)
-      setError(null)
-
-      const featured = await productsService.getFeatured()
-      const featuredData = Array.isArray(featured) ? featured : featured.data || []
-      setFeaturedProducts(featuredData.map(transformProduct))
-
-      const suppliersData = await suppliersService.getAll({ limit: 6, isVerified: true })
-      const suppliersList = suppliersData.data?.suppliers || suppliersData.suppliers || []
-      const transformedSuppliers = suppliersList.map(transformSupplier)
-      const uniqueSuppliers = transformedSuppliers.filter(
-        (supplier, index, self) => index === self.findIndex((s) => s.id === supplier.id)
-      )
-      setSuppliers(uniqueSuppliers)
-    } catch (err) {
-      setError(err.message || 'Failed to load data')
-    } finally {
-      setLoading(false)
-    }
-  }
 
   const filteredProducts = useMemo(() => {
     let filtered = featuredProducts
@@ -133,34 +125,6 @@ function Home() {
     navigate('/send-rfq', { state: { supplier } })
   }
 
-  if (loading) {
-    return (
-      <div className="page-mesh flex min-h-[50vh] items-center justify-center">
-        <div className="text-center">
-          <div className="mx-auto mb-3 h-9 w-9 animate-spin rounded-full border-2 border-slate-200 border-b-brand" />
-          <p className="text-sm text-slate-600">Loading…</p>
-        </div>
-      </div>
-    )
-  }
-
-  if (error) {
-    return (
-      <div className="page-mesh min-h-[60vh] flex items-center justify-center px-4">
-        <div className="max-w-md text-center">
-          <p className="mb-4 text-red-600">{error}</p>
-          <button
-            type="button"
-            onClick={loadData}
-            className="rounded-xl bg-brand px-6 py-2.5 text-sm font-semibold text-white hover:bg-brand-hover"
-          >
-            Retry
-          </button>
-        </div>
-      </div>
-    )
-  }
-
   return (
     <div className="page-mesh min-h-screen text-slate-900 antialiased">
       <LandingHero />
@@ -172,7 +136,13 @@ function Home() {
         onResetFilters={handleResetFilters}
         onSendRFQ={handleSendRFQ}
       />
-      <LandingVerifiedSuppliers suppliers={suppliers} onSendInquiry={handleSendInquiry} />
+      <LandingVerifiedSuppliers
+        suppliers={suppliersQuery.data ?? []}
+        isLoading={suppliersQuery.isPending}
+        isError={suppliersQuery.isError}
+        onRetry={() => suppliersQuery.refetch()}
+        onSendInquiry={handleSendInquiry}
+      />
       <LandingHowWeVerify />
       <LandingHowItWorks />
       <LandingComplianceCta />

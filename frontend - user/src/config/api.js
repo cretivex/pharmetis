@@ -5,6 +5,7 @@ import axios from 'axios';
  * so 401 on /auth/me does not spam the console. See src/api/authApi.js.
  * DevTools: open Network before actions; enable Preserve log to see XHR rows.
  */
+/** Must be the API root URL (include `/api` if your server mounts routes there). Paths in this app are relative, e.g. `/auth/login`. */
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://api.pharmetis.in/api';
 
 export const NETWORK_ERROR_MESSAGE = 'Network error. Please check your connection and try again.';

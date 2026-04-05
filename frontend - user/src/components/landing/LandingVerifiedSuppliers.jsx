@@ -2,6 +2,7 @@ import { BadgeCheck, Star } from 'lucide-react'
 import { Section } from './ui/Section'
 import { Button } from './ui/Button'
 import { CountryFlag } from './ui/CountryFlag'
+import SupplierCardSkeleton from './SupplierCardSkeleton'
 
 /** Rough map for flag display */
 const COUNTRY_CODE = {
@@ -15,7 +16,15 @@ const COUNTRY_CODE = {
   'South Africa': 'ZA',
 }
 
-export default function LandingVerifiedSuppliers({ suppliers, onSendInquiry }) {
+const SKELETON_COUNT = 8
+
+export default function LandingVerifiedSuppliers({
+  suppliers,
+  isLoading = false,
+  isError = false,
+  onRetry,
+  onSendInquiry,
+}) {
   return (
     <Section
       id="suppliers"
@@ -38,10 +47,32 @@ export default function LandingVerifiedSuppliers({ suppliers, onSendInquiry }) {
         </Button>
       </div>
 
+      {isError && (
+        <div className="relative mt-5 rounded-xl border border-red-200 bg-red-50/90 px-4 py-6 text-center">
+          <p className="text-sm font-medium text-red-800">Unable to load suppliers. Please try again.</p>
+          {onRetry && (
+            <button
+              type="button"
+              onClick={() => onRetry()}
+              className="mt-3 rounded-lg bg-neutral-900 px-4 py-2 text-xs font-semibold text-white hover:bg-neutral-800"
+            >
+              Retry
+            </button>
+          )}
+        </div>
+      )}
+
       <div className="relative mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4 lg:gap-4">
-        {suppliers.length === 0 ? (
+        {isLoading && !isError
+          ? Array.from({ length: SKELETON_COUNT }).map((_, i) => <SupplierCardSkeleton key={i} />)
+          : null}
+
+        {!isLoading && !isError && suppliers.length === 0 ? (
           <p className="col-span-full py-8 text-center text-sm text-gray-500">No suppliers to display.</p>
-        ) : (
+        ) : null}
+
+        {!isLoading &&
+          !isError &&
           suppliers.map((s) => {
             const slug = s.slug || s.id
             const certs = (s.certifications || []).slice(0, 4)
@@ -55,7 +86,13 @@ export default function LandingVerifiedSuppliers({ suppliers, onSendInquiry }) {
                 <div className="flex gap-2.5">
                   <div className="flex h-9 w-9 shrink-0 overflow-hidden rounded-md bg-gradient-to-br from-slate-100 to-slate-50 ring-1 ring-gray-200/80">
                     {s.image ? (
-                      <img src={s.image} alt="" className="h-full w-full object-cover" />
+                      <img
+                        src={s.image}
+                        alt=""
+                        className="h-full w-full object-cover"
+                        loading="lazy"
+                        decoding="async"
+                      />
                     ) : (
                       <span className="flex h-full w-full items-center justify-center text-xs font-bold text-blue-600">
                         {initial}
@@ -126,8 +163,7 @@ export default function LandingVerifiedSuppliers({ suppliers, onSendInquiry }) {
                 </div>
               </article>
             )
-          })
-        )}
+          })}
       </div>
     </Section>
   )

@@ -164,7 +164,8 @@ export const verifyRegistrationOTPService = async (email, otpCode, fullName = nu
         password: hashedPassword,
         role: 'BUYER',
         fullName: fullName || null,
-        companyName: companyName || null
+        companyName: companyName || null,
+        emailVerified: true,
       },
       select: {
         id: true,
@@ -172,8 +173,9 @@ export const verifyRegistrationOTPService = async (email, otpCode, fullName = nu
         role: true,
         fullName: true,
         companyName: true,
-        createdAt: true
-      }
+        emailVerified: true,
+        createdAt: true,
+      },
     });
 
     // Mark OTP as used
@@ -197,7 +199,8 @@ export const verifyRegistrationOTPService = async (email, otpCode, fullName = nu
         role: user.role,
         fullName: user.fullName,
         companyName: user.companyName,
-        createdAt: user.createdAt
+        emailVerified: user.emailVerified,
+        createdAt: user.createdAt,
       },
       token: accessToken,
       accessToken,

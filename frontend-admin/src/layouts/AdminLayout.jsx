@@ -32,7 +32,7 @@ export default function AdminLayout() {
   }, [mobileNavOpen])
 
   return (
-    <div className="flex min-h-screen bg-background">
+    <div className="flex min-h-[100dvh] min-h-screen flex-col overflow-hidden bg-background lg:h-screen">
       {!isDesktop && mobileNavOpen ? (
         <button
           type="button"
@@ -51,7 +51,7 @@ export default function AdminLayout() {
       />
 
       <div
-        className="flex min-h-screen min-w-0 flex-1 flex-col overflow-y-auto transition-[margin] duration-300 ease-out scrollbar-thin"
+        className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden transition-[margin] duration-300 ease-out"
         style={{ marginLeft: isDesktop ? sidebarWidth : 0 }}
       >
         <Navbar
@@ -59,7 +59,7 @@ export default function AdminLayout() {
           isDesktop={isDesktop}
           onOpenMobileMenu={() => setMobileNavOpen(true)}
         />
-        <main className="flex-1 min-w-0 pt-16">
+        <main className="min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-y-contain pt-16 scrollbar-thin">
           <PageContainer>
             <Outlet />
           </PageContainer>

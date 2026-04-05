@@ -1,5 +1,14 @@
 import Joi from 'joi';
 
+const certificationItemSchema = Joi.object({
+  type: Joi.string().max(255).required(),
+  number: Joi.string().max(255).allow('', null).optional(),
+  issuedBy: Joi.string().max(500).allow('', null).optional(),
+  issuedDate: Joi.date().allow(null).optional(),
+  expiryDate: Joi.date().allow(null).optional(),
+  document: Joi.string().uri().allow('', null).optional()
+});
+
 export const updateSupplierSchema = Joi.object({
   companyName: Joi.string().max(255).optional(),
   country: Joi.string().max(100).optional(),
@@ -29,7 +38,14 @@ export const updateSupplierSchema = Joi.object({
   logo: Joi.string().uri().allow('').optional(),
   logo_url: Joi.string().uri().allow('').optional(),
   isVerified: Joi.boolean().optional(),
-  isActive: Joi.boolean().optional()
+  isActive: Joi.boolean().optional(),
+  certifications: Joi.array().items(certificationItemSchema).optional()
+});
+
+/** Vendor self-service: cannot toggle admin approval flags. */
+export const updateSupplierMeSchema = updateSupplierSchema.keys({
+  isVerified: Joi.forbidden(),
+  isActive: Joi.forbidden()
 });
 
 export const createSupplierSchema = Joi.object({

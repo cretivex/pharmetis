@@ -1,5 +1,10 @@
-import api from './api.js'
+import api, { SUPPLIER_API_BASE_URL } from './api.js'
 import { getSupplierProfile } from './supplier.service.js'
+
+function supplierLoginUrl() {
+  const base = String(SUPPLIER_API_BASE_URL).replace(/\/$/, '')
+  return `${base}/auth/supplier/login`
+}
 
 export const registerSupplier = async (data) => {
   const response = await api.post('/suppliers/register', data)
@@ -7,7 +12,7 @@ export const registerSupplier = async (data) => {
 }
 
 export const loginSupplier = async (email, password) => {
-  const response = await fetch('/api/auth/supplier/login', {
+  const response = await fetch(supplierLoginUrl(), {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -21,7 +26,9 @@ export const loginSupplier = async (email, password) => {
   })
 
   const data = await response.json().catch(() => ({}))
-  console.log('Supplier login response:', data)
+  if (import.meta.env.DEV) {
+    console.debug('[loginSupplier]', response.ok ? 'ok' : response.status, data?.message || '')
+  }
 
   if (!response.ok) {
     const error = new Error(data?.message || 'Login failed')

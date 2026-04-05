@@ -1,5 +1,7 @@
+import { Prisma } from '@prisma/client';
 import prisma from '../../config/database.js';
 import { ApiError } from '../../utils/ApiError.js';
+import { parseMoqNumeric } from '../../utils/moq.js';
 
 function toArray(val) {
   if (val == null) return [];
@@ -14,9 +16,51 @@ const PRODUCT_SORT_FIELDS = new Set([
   'price',
   'availability',
   'dosageForm',
+  'moqNumeric',
 ]);
 
+function resolveSortFromCatalogParam(filters) {
+  const sortParam = filters.sort != null ? String(filters.sort) : null;
+  const map = {
+    relevance: { sortBy: 'createdAt', sortOrder: 'desc' },
+    'price-low': { sortBy: 'price', sortOrder: 'asc' },
+    'price-high': { sortBy: 'price', sortOrder: 'desc' },
+    'moq-asc': { sortBy: 'moqNumeric', sortOrder: 'asc' },
+    newest: { sortBy: 'createdAt', sortOrder: 'desc' },
+    'name-asc': { sortBy: 'name', sortOrder: 'asc' },
+    'name-desc': { sortBy: 'name', sortOrder: 'desc' },
+    'rating-desc': { sortBy: 'createdAt', sortOrder: 'desc' },
+  };
+  if (sortParam && map[sortParam]) {
+    return map[sortParam];
+  }
+  return {
+    sortBy: filters.sortBy ?? 'createdAt',
+    sortOrder: filters.sortOrder ?? 'desc',
+  };
+}
+
+/** Map UI certification tokens to ProductCompliance flags (AND). */
+function certificationsToComplianceWhere(certs) {
+  const list = toArray(certs)
+    .map((c) => String(c).trim().toUpperCase())
+    .filter(Boolean);
+  if (list.length === 0) return null;
+  const complianceWhere = {};
+  for (const c of list) {
+    if (c === 'GMP' || c === 'WHO-GMP' || (c.includes('WHO') && c.includes('GMP'))) {
+      complianceWhere.whoGmp = true;
+    } else if (c === 'FDA') {
+      complianceWhere.fda = true;
+    } else if (c === 'ISO') {
+      complianceWhere.iso = true;
+    }
+  }
+  return Object.keys(complianceWhere).length ? complianceWhere : null;
+}
+
 export const getProductsService = async (filters = {}) => {
+  const resolved = resolveSortFromCatalogParam(filters);
   const {
     search,
     dosageForm,
@@ -25,11 +69,17 @@ export const getProductsService = async (filters = {}) => {
     therapeuticAreas,
     manufacturer,
     categoryIds,
-    sortBy: sortByRaw = 'createdAt',
-    sortOrder: sortOrderRaw = 'desc',
+    category: categorySlug,
+    certification,
+    minPrice,
+    maxPrice,
+    moq: minMoqParam,
     page = 1,
-    limit = 20
+    limit = 20,
   } = filters;
+
+  let sortByRaw = resolved.sortBy;
+  let sortOrderRaw = resolved.sortOrder;
 
   const sortBy = PRODUCT_SORT_FIELDS.has(String(sortByRaw)) ? String(sortByRaw) : 'createdAt';
   const sortOrder = String(sortOrderRaw).toLowerCase() === 'asc' ? 'asc' : 'desc';
@@ -56,7 +106,9 @@ export const getProductsService = async (filters = {}) => {
       { name: { contains: search, mode: 'insensitive' } },
       { brand: { contains: search, mode: 'insensitive' } },
       { manufacturer: { contains: search, mode: 'insensitive' } },
-      { composition: { contains: search, mode: 'insensitive' } }
+      { composition: { contains: search, mode: 'insensitive' } },
+      { description: { contains: search, mode: 'insensitive' } },
+      { apiName: { contains: search, mode: 'insensitive' } },
     ];
   }
 
@@ -109,11 +161,52 @@ export const getProductsService = async (filters = {}) => {
     })
   }
 
-  const categoryIdList = toArray(categoryIds).filter(Boolean);
+  const categoryIdList = [...toArray(categoryIds).filter(Boolean)];
+
+  if (categorySlug) {
+    const cat = await prisma.category.findFirst({
+      where: {
+        slug: String(categorySlug),
+        deletedAt: null,
+        isActive: true,
+      },
+      select: { id: true },
+    });
+    if (cat) categoryIdList.push(cat.id);
+  }
+
   if (categoryIdList.length > 0) {
     where.productCategories = {
-      some: { categoryId: { in: categoryIdList } }
+      some: { categoryId: { in: [...new Set(categoryIdList)] } },
     };
+  }
+
+  const certList = toArray(certification).filter(Boolean);
+  const complianceWhere = certificationsToComplianceWhere(certList);
+  if (complianceWhere) {
+    where.compliance = { is: complianceWhere };
+  }
+
+  const minP =
+    minPrice !== undefined && minPrice !== '' && !Number.isNaN(parseFloat(minPrice))
+      ? parseFloat(minPrice)
+      : null;
+  const maxP =
+    maxPrice !== undefined && maxPrice !== '' && !Number.isNaN(parseFloat(maxPrice))
+      ? parseFloat(maxPrice)
+      : null;
+  if (minP != null || maxP != null) {
+    where.price = {};
+    if (minP != null) where.price.gte = new Prisma.Decimal(minP);
+    if (maxP != null) where.price.lte = new Prisma.Decimal(maxP);
+  }
+
+  const minMoq =
+    minMoqParam !== undefined && minMoqParam !== '' && !Number.isNaN(parseInt(String(minMoqParam), 10))
+      ? parseInt(String(minMoqParam), 10)
+      : null;
+  if (minMoq != null) {
+    where.moqNumeric = { not: null, gte: minMoq };
   }
 
   if (andClauses.length > 0) {
@@ -346,9 +439,10 @@ export const createProductService = async (data) => {
     moq,
     availability = 'IN_STOCK',
     price,
+    moqNumeric: moqNumericIn,
     image_url,
     images = [],
-    categoryIds = []
+    categoryIds = [],
   } = data;
   const normalizedImages = Array.isArray(images) && images.length > 0
     ? images
@@ -434,6 +528,7 @@ export const createProductService = async (data) => {
       regulatoryApprovals,
       hsCode,
       moq,
+      moqNumeric: moqNumericIn != null ? moqNumericIn : parseMoqNumeric(moq),
       availability,
       price: price ? parseFloat(price) : null,
       image_url: image_url || normalizedImages[0]?.url || null,
@@ -483,6 +578,10 @@ export const updateProductService = async (id, data) => {
 
   if (updateData.price) {
     updateData.price = parseFloat(updateData.price);
+  }
+
+  if (data.moq !== undefined) {
+    updateData.moqNumeric = parseMoqNumeric(data.moq);
   }
 
   if (image_url !== undefined) {

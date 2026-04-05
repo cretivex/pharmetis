@@ -1,7 +1,47 @@
 import prisma from '../../config/database.js';
 import { ApiError } from '../../utils/ApiError.js';
 import { logger } from '../../utils/logger.js';
-import { createRFQHistoryEntry } from '../rfqs/rfq-history.service.js';
+
+/** List payments for the authenticated buyer (newest first). */
+export const listPaymentsForBuyerService = async (buyerId, { page = 1, limit = 50 } = {}) => {
+  const take = Math.min(Math.max(Number(limit) || 50, 1), 100);
+  const skip = (Math.max(Number(page) || 1, 1) - 1) * take;
+
+  const [items, total] = await Promise.all([
+    prisma.payment.findMany({
+      where: { buyerId },
+      orderBy: { createdAt: 'desc' },
+      skip,
+      take,
+      include: {
+        rfq: {
+          select: {
+            id: true,
+            title: true,
+            rfqNumber: true,
+            status: true,
+          },
+        },
+        quotation: {
+          select: {
+            id: true,
+            supplier: {
+              select: { id: true, companyName: true },
+            },
+          },
+        },
+      },
+    }),
+    prisma.payment.count({ where: { buyerId } }),
+  ]);
+
+  return {
+    items,
+    total,
+    page: Math.max(Number(page) || 1, 1),
+    limit: take,
+  };
+};
 
 export const createPaymentService = async (rfqId, buyerId, data) => {
   try {
@@ -180,11 +220,18 @@ export const confirmPaymentService = async (paymentId, buyerId, data) => {
     }
 
     const quotation = rfq.selectedQuotation;
-    
+
     if (!quotation) {
       throw new ApiError(400, 'No quotation selected for this RFQ. Cannot confirm payment.');
     }
-    
+
+    const supplierIdForInvoice = quotation.supplierId;
+    const invoiceNumber = `INV-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`.toUpperCase();
+
+    const existingInvoice = await prisma.invoice.findFirst({
+      where: { paymentId }
+    });
+
     const transactionOperations = [
       prisma.payment.update({
         where: { id: paymentId },
@@ -224,7 +271,23 @@ export const confirmPaymentService = async (paymentId, buyerId, data) => {
           gateway: gateway || 'MANUAL',
           gatewayResponse: gatewayResponse || {}
         }
-      })
+      }),
+      ...(existingInvoice
+        ? []
+        : [
+            prisma.invoice.create({
+              data: {
+                rfqId: rfq.id,
+                paymentId,
+                buyerId,
+                supplierId: supplierIdForInvoice,
+                invoiceNumber,
+                amount: payment.amount,
+                currency: payment.currency || 'USD',
+                status: 'ISSUED'
+              }
+            })
+          ])
     ];
 
     await prisma.$transaction(transactionOperations);

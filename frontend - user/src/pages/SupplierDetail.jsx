@@ -1,5 +1,6 @@
 import { useEffect, useState, useMemo } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, Link } from 'react-router-dom'
+import { useSelector } from 'react-redux'
 import {
   ArrowRight,
   Building2,
@@ -32,6 +33,7 @@ const BANNER_IMAGE =
 export default function SupplierDetail() {
   const { slug } = useParams()
   const navigate = useNavigate()
+  const authUser = useSelector((state) => state.auth.user)
   const [supplier, setSupplier] = useState(null)
   const [supplierProducts, setSupplierProducts] = useState([])
   const [loading, setLoading] = useState(true)
@@ -376,7 +378,15 @@ export default function SupplierDetail() {
                 </div>
               </div>
 
-              <div className="flex w-full lg:w-auto lg:min-w-[200px] lg:shrink-0">
+              <div className="flex w-full flex-col gap-2 lg:w-auto lg:min-w-[200px] lg:shrink-0">
+                {authUser?.role === 'BUYER' && supplier?.id ? (
+                  <Link
+                    to={`/buyer/messages?supplierId=${supplier.id}`}
+                    className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-gray-300 bg-white px-5 py-3.5 text-sm font-semibold text-gray-900 shadow-sm transition hover:bg-gray-50"
+                  >
+                    Message
+                  </Link>
+                ) : null}
                 <button
                   type="button"
                   onClick={() => goSendRfq()}

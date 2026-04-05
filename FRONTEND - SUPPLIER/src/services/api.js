@@ -6,10 +6,11 @@ import { setSupplierFlash } from '@/lib/flashStorage.js'
  * Turn on "Preserve log" before navigating or the list clears on refresh.
  * Then filter "Fetch/XHR" and submit Login — you should see auth/login.
  */
-const API_URL = import.meta.env.VITE_API_URL || '/api'
+/** Same base URL for axios and fetch (e.g. supplier login). */
+export const SUPPLIER_API_BASE_URL = import.meta.env.VITE_API_URL || '/api'
 
 const api = axios.create({
-  baseURL: API_URL,
+  baseURL: SUPPLIER_API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -48,7 +49,7 @@ api.interceptors.response.use(
       import.meta.env.DEV &&
       (error.code === 'ERR_NETWORK' || error.message === 'Network Error')
     ) {
-      console.warn('Network error — is the API running?', API_URL)
+      console.warn('Network error — is the API running?', SUPPLIER_API_BASE_URL)
     }
     return Promise.reject(error)
   }

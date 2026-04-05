@@ -86,6 +86,16 @@ function Navbar() {
     { to: '/medicines', label: 'Medicines' },
     { to: '/suppliers', label: 'Suppliers' },
     { to: { pathname: '/', hash: 'compliance' }, label: 'Compliance' },
+    {
+      to: '/resources',
+      label: 'Resources',
+      activeMatch: (p) =>
+        p === '/resources' ||
+        p === '/blog' ||
+        p === '/industry-news' ||
+        (typeof p === 'string' && p.startsWith('/guides')),
+    },
+    { to: '/platform', label: 'Platform' },
     { to: '/about', label: 'About Us' },
   ]
 
@@ -93,6 +103,9 @@ function Navbar() {
     typeof item.to === 'string' ? item.to : `${item.to.pathname}${item.to.hash || ''}`
 
   const isNavActive = (item) => {
+    if (typeof item.activeMatch === 'function') {
+      return item.activeMatch(location.pathname)
+    }
     if (typeof item.to === 'string') {
       if (item.to === '/') return location.pathname === '/'
       return location.pathname === item.to || location.pathname.startsWith(`${item.to}/`)
@@ -118,7 +131,7 @@ function Navbar() {
           <img
             src="/logo-pharmetis.svg"
             alt=""
-            className="h-10 w-auto max-w-[min(15rem,52vw)] object-contain object-left sm:h-11 sm:max-w-[17rem]"
+            className="h-18 w-auto max-w-[min(25rem,65vw)] object-contain object-left sm:h-20 sm:max-w-[28rem]"
           />
         </Link>
 
@@ -280,7 +293,7 @@ function Navbar() {
       </div>
 
       {isMobileMenuOpen && (
-        <div className="absolute left-0 right-0 top-full z-50 border-b border-white/10 bg-[#050b1d] shadow-lg">
+        <div className="absolute left-0 right-0 top-full z-50 max-h-[calc(100dvh-3.5rem)] overflow-y-auto overscroll-contain border-b border-white/10 bg-[#050b1d] shadow-lg">
           <div className="mx-auto max-w-7xl px-6 py-4">
             <nav className="flex flex-col space-y-1" aria-label="Mobile navigation">
               {navLinks.map((link) => (

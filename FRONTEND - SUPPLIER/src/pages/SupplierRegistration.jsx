@@ -1,17 +1,16 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { 
-  Building2, 
-  FileText, 
-  User, 
-  MapPin, 
-  Upload, 
-  FileSpreadsheet,
+import {
+  Building2,
+  FileText,
+  User,
+  MapPin,
   CheckCircle2,
   ArrowRight,
   ArrowLeft,
   Loader2,
-  Save
+  Save,
+  ListChecks
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -20,16 +19,13 @@ import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
 import { registerSupplier } from '@/services/auth.service'
-import { bulkUploadProducts } from '@/services/products.service'
 
 const steps = [
   { id: 1, title: 'Company Details', icon: Building2 },
   { id: 2, title: 'GST & License', icon: FileText },
   { id: 3, title: 'Contact Person', icon: User },
   { id: 4, title: 'Address', icon: MapPin },
-  { id: 5, title: 'Documents', icon: Upload },
-  { id: 6, title: 'Products', icon: FileSpreadsheet },
-  { id: 7, title: 'Review', icon: CheckCircle2 },
+  { id: 5, title: 'Review & next steps', icon: ListChecks }
 ]
 
 export default function SupplierRegistration() {
@@ -66,29 +62,12 @@ export default function SupplierRegistration() {
     country: '',
     city: '',
     address: '',
-    postalCode: '',
-    
-    // Step 5: Documents
-    documents: [],
-    
-    // Step 6: Products
-    productFile: null,
+    postalCode: ''
   })
 
   const updateFormData = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }))
     setDraftSaved(false)
-  }
-
-  const handleFileChange = (field, files) => {
-    updateFormData(field, Array.from(files))
-  }
-
-  const handleProductFileChange = (e) => {
-    const file = e.target.files?.[0]
-    if (file) {
-      updateFormData('productFile', file)
-    }
   }
 
   const saveDraft = () => {
@@ -100,7 +79,14 @@ export default function SupplierRegistration() {
   const loadDraft = () => {
     const draft = localStorage.getItem('supplierRegistrationDraft')
     if (draft) {
-      setFormData(JSON.parse(draft))
+      try {
+        const parsed = JSON.parse(draft)
+        delete parsed.documents
+        delete parsed.productFile
+        setFormData((prev) => ({ ...prev, ...parsed }))
+      } catch {
+        /* ignore corrupt draft */
+      }
     }
   }
 
@@ -188,10 +174,7 @@ export default function SupplierRegistration() {
         ...(formData.licenseExpiry && formData.licenseExpiry.trim() !== '' && { licenseExpiry: formData.licenseExpiry }),
       }
 
-      // Log payload for debugging (remove in production)
-      console.log('[SupplierRegistration] Sending payload:', registrationData)
-
-      const result = await registerSupplier(registrationData)
+      await registerSupplier(registrationData)
       
       // Redirect to OTP verification page with email
       navigate('/supplier/verify-otp', { 
@@ -221,7 +204,9 @@ export default function SupplierRegistration() {
       <div className="supplier-page mx-auto max-w-4xl py-8 sm:py-10 lg:py-12">
         <div className="mb-8 text-center">
           <h1 className="supplier-section-title">Supplier registration</h1>
-          <p className="supplier-section-sub">Complete all steps to verify your company and access the portal.</p>
+          <p className="supplier-section-sub">
+            Complete the form, verify your email, then sign in to upload compliance documents and your product catalog.
+          </p>
         </div>
 
         <Card className="mb-6 border-border/60 shadow-card">
@@ -466,98 +451,20 @@ export default function SupplierRegistration() {
               </div>
             )}
 
-            {/* Step 5: Documents */}
+            {/* Step 5: Review & next steps (documents/products happen after login) */}
             {currentStep === 5 && (
-              <div className="space-y-4">
-                <div>
-                  <Label>Upload Documents</Label>
-                  <div className="mt-2 border-2 border-dashed border-gray-300 rounded-lg p-6">
-                    <input
-                      type="file"
-                      multiple
-                      accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
-                      onChange={(e) => handleFileChange('documents', e.target.files)}
-                      className="hidden"
-                      id="documents"
-                    />
-                    <label
-                      htmlFor="documents"
-                      className="cursor-pointer flex flex-col items-center"
-                    >
-                      <Upload className="h-8 w-8 text-gray-400 mb-2" />
-                      <span className="text-sm text-gray-600">
-                        Click to upload or drag and drop
-                      </span>
-                      <span className="text-xs text-gray-500 mt-1">
-                        PDF, DOC, DOCX, JPG, PNG (Max 10MB each)
-                      </span>
-                    </label>
-                  </div>
-                  {formData.documents.length > 0 && (
-                    <div className="mt-4 space-y-2">
-                      {Array.from(formData.documents).map((file, index) => (
-                        <div key={index} className="text-sm text-gray-600">
-                          {file.name} ({(file.size / 1024).toFixed(2)} KB)
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* Step 6: Products */}
-            {currentStep === 6 && (
-              <div className="space-y-4">
-                <div>
-                  <Label>Upload Products (Excel/CSV)</Label>
-                  <div className="mt-2 border-2 border-dashed border-gray-300 rounded-lg p-6">
-                    <input
-                      type="file"
-                      accept=".xlsx,.xls,.csv"
-                      onChange={handleProductFileChange}
-                      className="hidden"
-                      id="productFile"
-                    />
-                    <label
-                      htmlFor="productFile"
-                      className="cursor-pointer flex flex-col items-center"
-                    >
-                      <FileSpreadsheet className="h-8 w-8 text-gray-400 mb-2" />
-                      <span className="text-sm text-gray-600">
-                        Click to upload Excel or CSV file
-                      </span>
-                      <span className="text-xs text-gray-500 mt-1">
-                        Download sample template first
-                      </span>
-                    </label>
-                  </div>
-                  {formData.productFile && (
-                    <div className="mt-4 text-sm text-gray-600">
-                      {formData.productFile.name} ({(formData.productFile.size / 1024).toFixed(2)} KB)
-                    </div>
-                  )}
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="mt-4"
-                    onClick={() => {
-                      // Download template logic
-                      const link = document.createElement('a')
-                      link.href = '/product-template.csv'
-                      link.download = 'product-template.csv'
-                      link.click()
-                    }}
-                  >
-                    Download Sample Template
-                  </Button>
-                </div>
-              </div>
-            )}
-
-            {/* Step 7: Review */}
-            {currentStep === 7 && (
               <div className="space-y-6">
+                <div className="rounded-lg border border-border/60 bg-muted/40 p-4 text-sm text-muted-foreground dark:bg-muted/20">
+                  <p className="font-medium text-foreground">After you verify your email</p>
+                  <ul className="mt-2 list-inside list-disc space-y-1">
+                    <li>
+                      <strong className="text-foreground">Company profile</strong> — upload compliance documents and certifications (PDF or Office files).
+                    </li>
+                    <li>
+                      <strong className="text-foreground">Products</strong> — add products individually or use bulk Excel upload (signed-in only).
+                    </li>
+                  </ul>
+                </div>
                 <div className="space-y-4">
                   <h3 className="font-semibold">Company Details</h3>
                   <div className="grid grid-cols-2 gap-4 text-sm">
@@ -617,7 +524,7 @@ export default function SupplierRegistration() {
                     </>
                   ) : (
                     <>
-                      Submit for Review
+                      Create account
                       <CheckCircle2 className="h-4 w-4 ml-2" />
                     </>
                   )}

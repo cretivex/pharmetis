@@ -1,112 +1,236 @@
-import { useState } from 'react'
-import { MessageSquare, Send, Paperclip } from 'lucide-react'
+import { useState, useEffect, useCallback } from 'react'
+import { Link, useSearchParams } from 'react-router-dom'
+import { MessageSquare, Send, Loader2, Building2 } from 'lucide-react'
+import { messagesService } from '../../services/messages.service'
+import { authService } from '../../services/auth.service'
+
+function formatTime(d) {
+  if (!d) return ''
+  const date = new Date(d)
+  const now = new Date()
+  const diff = now - date
+  if (diff < 86400000) return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+  if (diff < 604800000) return `${Math.floor(diff / 86400000)}d ago`
+  return date.toLocaleDateString()
+}
 
 function Messages() {
-  const [selectedConversation, setSelectedConversation] = useState(null)
-  const [message, setMessage] = useState('')
+  const [searchParams, setSearchParams] = useSearchParams()
+  const supplierIdParam = searchParams.get('supplierId')
 
-  const conversations = [
-    { id: 1, name: 'Supplier ABC', lastMessage: 'Thank you for your inquiry...', time: '2h ago', unread: 2 },
-    { id: 2, name: 'Supplier XYZ', lastMessage: 'We can provide the following...', time: '1d ago', unread: 0 },
-  ]
+  const [threads, setThreads] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+  const [selectedId, setSelectedId] = useState(null)
+  const [messages, setMessages] = useState([])
+  const [msgLoading, setMsgLoading] = useState(false)
+  const [draft, setDraft] = useState('')
+  const [sending, setSending] = useState(false)
 
-  const messages = selectedConversation ? [
-    { id: 1, sender: 'Supplier ABC', text: 'Thank you for your inquiry. We can provide the requested products.', time: '10:30 AM', isMe: false },
-    { id: 2, sender: 'You', text: 'Great! What is the lead time?', time: '10:35 AM', isMe: true },
-    { id: 3, sender: 'Supplier ABC', text: 'Lead time is 2-3 weeks for bulk orders.', time: '10:40 AM', isMe: false },
-  ] : []
+  const loadThreads = useCallback(async () => {
+    try {
+      setLoading(true)
+      setError(null)
+      const list = await messagesService.listThreads()
+      setThreads(Array.isArray(list) ? list : [])
+    } catch (e) {
+      setError(e?.message || 'Failed to load conversations')
+      setThreads([])
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    loadThreads()
+  }, [loadThreads])
+
+  useEffect(() => {
+    if (!supplierIdParam || loading) return
+    let cancelled = false
+    ;(async () => {
+      try {
+        const thread = await messagesService.getOrCreateThread({ supplierId: supplierIdParam })
+        if (cancelled || !thread?.id) return
+        setSelectedId(thread.id)
+        const next = new URLSearchParams(searchParams)
+        next.delete('supplierId')
+        setSearchParams(next, { replace: true })
+        await loadThreads()
+      } catch (_) {
+        /* ignore */
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [supplierIdParam, loading, searchParams, setSearchParams, loadThreads])
+
+  useEffect(() => {
+    if (!selectedId) {
+      setMessages([])
+      return
+    }
+    let cancelled = false
+    ;(async () => {
+      try {
+        setMsgLoading(true)
+        const list = await messagesService.listMessages(selectedId)
+        if (!cancelled) setMessages(Array.isArray(list) ? list : [])
+      } catch {
+        if (!cancelled) setMessages([])
+      } finally {
+        if (!cancelled) setMsgLoading(false)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [selectedId])
+
+  const selectedThread = threads.find((t) => t.id === selectedId)
+  const peerName = (t) => {
+    if (t?.supplier?.companyName) return t.supplier.companyName
+    if (t?.buyer?.companyName) return t.buyer.companyName
+    if (t?.buyer?.fullName) return t.buyer.fullName
+    if (t?.buyer?.email) return t.buyer.email
+    return 'Conversation'
+  }
+
+  const handleSend = async (e) => {
+    e.preventDefault()
+    if (!selectedId || !draft.trim() || sending) return
+    try {
+      setSending(true)
+      await messagesService.sendMessage(selectedId, draft.trim())
+      setDraft('')
+      const list = await messagesService.listMessages(selectedId)
+      setMessages(Array.isArray(list) ? list : [])
+      loadThreads()
+    } catch (_) {
+      setError('Could not send message')
+    } finally {
+      setSending(false)
+    }
+  }
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-slate-900 mb-2">Messages</h1>
+        <h1 className="mb-2 text-3xl font-bold text-slate-900">Messages</h1>
         <p className="text-slate-600">Communicate with suppliers</p>
+        <p className="mt-1 text-sm text-slate-500">
+          Start a thread from a{' '}
+          <Link to="/buyer/suppliers" className="font-medium text-blue-600 hover:text-blue-700">
+            supplier profile
+          </Link>{' '}
+          (Message button) or continue below.
+        </p>
       </div>
 
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm h-[600px] flex">
-        {/* Conversations List */}
-        <div className="w-80 border-r border-slate-200 overflow-y-auto">
-          <div className="p-4 border-b border-slate-200">
+      {error ? (
+        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">{error}</div>
+      ) : null}
+
+      <div className="flex h-[min(600px,calc(100dvh-12rem))] rounded-xl border border-slate-200 bg-white shadow-sm">
+        <div className="w-full max-w-[min(100%,20rem)] flex-shrink-0 overflow-y-auto border-r border-slate-200">
+          <div className="border-b border-slate-200 p-4">
             <h2 className="font-semibold text-slate-900">Conversations</h2>
           </div>
-          <div className="divide-y divide-slate-200">
-            {conversations.map((conv) => (
-              <button
-                key={conv.id}
-                onClick={() => setSelectedConversation(conv.id)}
-                className={`w-full p-4 text-left hover:bg-slate-50 transition-colors ${
-                  selectedConversation === conv.id ? 'bg-blue-50' : ''
-                }`}
-              >
-                <div className="flex items-center justify-between mb-1">
-                  <h3 className="font-medium text-slate-900">{conv.name}</h3>
-                  {conv.unread > 0 && (
-                    <span className="flex h-5 w-5 items-center justify-center rounded-full bg-neutral-900 text-xs text-white">
-                      {conv.unread}
-                    </span>
-                  )}
-                </div>
-                <p className="text-sm text-slate-600 truncate">{conv.lastMessage}</p>
-                <p className="text-xs text-slate-500 mt-1">{conv.time}</p>
-              </button>
-            ))}
-          </div>
+          {loading ? (
+            <div className="flex justify-center p-8">
+              <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
+            </div>
+          ) : threads.length === 0 ? (
+            <div className="p-6 text-center text-sm text-slate-500">
+              <Building2 className="mx-auto mb-2 h-10 w-10 text-slate-300" />
+              No conversations yet.
+            </div>
+          ) : (
+            <div className="divide-y divide-slate-200">
+              {threads.map((conv) => (
+                <button
+                  key={conv.id}
+                  type="button"
+                  onClick={() => setSelectedId(conv.id)}
+                  className={`w-full p-4 text-left transition-colors hover:bg-slate-50 ${
+                    selectedId === conv.id ? 'bg-blue-50' : ''
+                  }`}
+                >
+                  <div className="mb-1 flex items-center justify-between">
+                    <h3 className="font-medium text-slate-900">{peerName(conv)}</h3>
+                  </div>
+                  <p className="truncate text-sm text-slate-600">
+                    {conv.messages?.[0]?.body || 'No messages yet'}
+                  </p>
+                  <p className="mt-1 text-xs text-slate-500">{formatTime(conv.lastMessageAt)}</p>
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
-        {/* Chat Window */}
-        <div className="flex-1 flex flex-col">
-          {selectedConversation ? (
+        <div className="flex min-w-0 flex-1 flex-col">
+          {selectedId ? (
             <>
-              <div className="p-4 border-b border-slate-200">
-                <h3 className="font-semibold text-slate-900">
-                  {conversations.find(c => c.id === selectedConversation)?.name}
-                </h3>
+              <div className="border-b border-slate-200 p-4">
+                <h3 className="font-semibold text-slate-900">{peerName(selectedThread)}</h3>
+                {selectedThread?.rfq?.rfqNumber ? (
+                  <p className="text-xs text-slate-500">RFQ {selectedThread.rfq.rfqNumber}</p>
+                ) : null}
               </div>
-              <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                {messages.map((msg) => (
-                  <div
-                    key={msg.id}
-                    className={`flex ${msg.isMe ? 'justify-end' : 'justify-start'}`}
-                  >
-                    <div
-                      className={`max-w-[70%] rounded-lg p-3 ${
-                        msg.isMe
-                          ? 'bg-blue-600 text-white'
-                          : 'bg-blue-50 text-slate-900'
-                      }`}
-                    >
-                      <p className="text-sm">{msg.text}</p>
-                      <p className={`text-xs mt-1 ${msg.isMe ? 'text-blue-100' : 'text-slate-500'}`}>
-                        {msg.time}
-                      </p>
-                    </div>
+              <div className="flex-1 space-y-4 overflow-y-auto p-4">
+                {msgLoading ? (
+                  <div className="flex justify-center py-12">
+                    <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
                   </div>
-                ))}
+                ) : (
+                  messages.map((msg) => {
+                    const me = msg.senderId === authService.getCurrentUser()?.id
+                    return (
+                      <div
+                        key={msg.id}
+                        className={`flex ${me ? 'justify-end' : 'justify-start'}`}
+                      >
+                        <div
+                          className={`max-w-[85%] rounded-lg px-3 py-2 ${
+                            me ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-900'
+                          }`}
+                        >
+                          <p className="text-sm whitespace-pre-wrap">{msg.body}</p>
+                          <p className={`mt-1 text-xs ${me ? 'text-blue-100' : 'text-slate-500'}`}>
+                            {formatTime(msg.createdAt)}
+                          </p>
+                        </div>
+                      </div>
+                    )
+                  })
+                )}
               </div>
-              <div className="p-4 border-t border-slate-200">
+              <form onSubmit={handleSend} className="border-t border-slate-200 p-4">
                 <div className="flex items-center gap-2">
-                  <button className="p-2 hover:bg-slate-100 rounded-lg">
-                    <Paperclip className="w-5 h-5 text-slate-600" />
-                  </button>
                   <input
                     type="text"
-                    value={message}
-                    onChange={(e) => setMessage(e.target.value)}
+                    value={draft}
+                    onChange={(e) => setDraft(e.target.value)}
                     placeholder="Type a message..."
-                    className="flex-1 px-4 py-2 border border-slate-300 rounded-lg bg-white text-slate-900"
+                    className="flex-1 rounded-lg border border-slate-300 bg-white px-4 py-2 text-slate-900"
                   />
-                  <button className="p-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg">
-                    <Send className="w-5 h-5" />
+                  <button
+                    type="submit"
+                    disabled={sending || !draft.trim()}
+                    className="rounded-lg bg-blue-600 p-2 text-white hover:bg-blue-700 disabled:opacity-50"
+                    aria-label="Send"
+                  >
+                    {sending ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
                   </button>
                 </div>
-              </div>
+              </form>
             </>
           ) : (
-            <div className="flex-1 flex items-center justify-center">
-              <div className="text-center">
-                <MessageSquare className="w-16 h-16 mx-auto mb-4 text-slate-300" />
-                <p className="text-slate-500">Select a conversation to start messaging</p>
-              </div>
+            <div className="flex flex-1 flex-col items-center justify-center gap-2 p-8 text-center text-slate-500">
+              <MessageSquare className="h-12 w-12 text-slate-300" />
+              <p>Select a conversation or open a supplier profile to start messaging.</p>
             </div>
           )}
         </div>

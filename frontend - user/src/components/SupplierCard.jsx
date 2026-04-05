@@ -21,6 +21,8 @@ function SupplierCard({ supplier, onViewSupplier, onSendInquiry }) {
                 src={supplier.image}
                 alt={supplier.name}
                 className="w-full h-full object-cover"
+                loading="lazy"
+                decoding="async"
               />
             ) : (
               <Building2 className="w-8 h-8 text-slate-500" strokeWidth={1.5} />

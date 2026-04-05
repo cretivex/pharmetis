@@ -49,12 +49,32 @@ export const getSuppliersService = async (filters = {}) => {
             fullName: true
           }
         },
-        compliance: true,
+        compliance: {
+          select: {
+            whoGmp: true,
+            fda: true,
+            iso: true,
+            dmf: true,
+            coa: true,
+            auditTrail: true
+          }
+        },
         certifications: {
-          take: 5
+          take: 5,
+          select: {
+            type: true
+          }
         },
         manufacturingCapabilities: {
-          select: { dosageForms: true }
+          select: {
+            dosageForms: true,
+            exportMarkets: true,
+            regulatoryApprovals: true,
+            productionCapacity: true,
+            packagingTypes: true,
+            coldChain: true,
+            minOrderTerms: true
+          }
         },
         _count: {
           select: {
@@ -296,32 +316,69 @@ export const updateSupplierService = async (id, data) => {
     }
   }
 
+  const certificationsPayload = data.certifications;
+  if (certificationsPayload !== undefined) {
+    delete updateData.certifications;
+  }
+
+  const includeResult = {
+    user: {
+      select: {
+        id: true,
+        email: true,
+        phone: true,
+        fullName: true
+      }
+    },
+    compliance: true,
+    certifications: true,
+    _count: {
+      select: {
+        products: {
+          where: {
+            deletedAt: null,
+            isActive: true
+          }
+        },
+        rfqResponses: true
+      }
+    }
+  };
+
+  if (certificationsPayload !== undefined) {
+    const certs = Array.isArray(certificationsPayload) ? certificationsPayload : [];
+    await prisma.$transaction(async (tx) => {
+      if (Object.keys(updateData).length > 0) {
+        await tx.supplier.update({
+          where: { id },
+          data: updateData
+        });
+      }
+      await tx.supplierCertification.deleteMany({ where: { supplierId: id } });
+      if (certs.length > 0) {
+        await tx.supplierCertification.createMany({
+          data: certs.map((c) => ({
+            supplierId: id,
+            type: c.type,
+            number: c.number ?? null,
+            issuedBy: c.issuedBy ?? null,
+            issuedDate: c.issuedDate ? new Date(c.issuedDate) : null,
+            expiryDate: c.expiryDate ? new Date(c.expiryDate) : null,
+            document: c.document ?? null
+          }))
+        });
+      }
+    });
+    return prisma.supplier.findUnique({
+      where: { id },
+      include: includeResult
+    });
+  }
+
   const updated = await prisma.supplier.update({
     where: { id },
     data: updateData,
-    include: {
-      user: {
-        select: {
-          id: true,
-          email: true,
-          phone: true,
-          fullName: true
-        }
-      },
-      compliance: true,
-      certifications: true,
-      _count: {
-        select: {
-          products: {
-            where: {
-              deletedAt: null,
-              isActive: true
-            }
-          },
-          rfqResponses: true
-        }
-      }
-    }
+    include: includeResult
   });
 
   return updated;

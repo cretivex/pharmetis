@@ -14,6 +14,7 @@ import MedicineDetail from '../pages/MedicineDetail';
 import Suppliers from '../pages/Suppliers';
 import SupplierDetail from '../pages/SupplierDetail';
 import About from '../pages/About';
+import Platform from '../pages/Platform';
 import Compliance from '../pages/Compliance';
 import Privacy from '../pages/Privacy';
 import Terms from '../pages/Terms';
@@ -27,13 +28,22 @@ import Payment from '../pages/Payment';
 import SavedProducts from '../pages/SavedProducts';
 import Settings from '../pages/Settings';
 
-import Dashboard from '../pages/buyer/Dashboard';
+import Onboarding from '../pages/buyer/Onboarding';
 import RFQs from '../pages/buyer/RFQs';
 import BuyerSuppliers from '../pages/buyer/Suppliers';
 import Messages from '../pages/buyer/Messages';
 import Payments from '../pages/buyer/Payments';
 import Profile from '../pages/buyer/Profile';
 import BuyerSettings from '../pages/buyer/Settings';
+import BuyerOrders from '../pages/buyer/Orders';
+import BuyerInvoices from '../pages/buyer/Invoices';
+
+import ResourcesHub from '../pages/resources/ResourcesHub';
+import Blog from '../pages/content/Blog';
+import IndustryNews from '../pages/content/IndustryNews';
+import ImportExportGuides from '../pages/content/guides/ImportExportGuides';
+import ComplianceGuides from '../pages/content/guides/ComplianceGuides';
+import MarketReports from '../pages/content/guides/MarketReports';
 
 function AppRoutes() {
   return (
@@ -52,6 +62,13 @@ function AppRoutes() {
         <Route path="/suppliers" element={<Suppliers />} />
         <Route path="/suppliers/:slug" element={<SupplierDetail />} />
         <Route path="/about" element={<About />} />
+        <Route path="/platform" element={<Platform />} />
+        <Route path="/resources" element={<ResourcesHub />} />
+        <Route path="/blog" element={<Blog />} />
+        <Route path="/industry-news" element={<IndustryNews />} />
+        <Route path="/guides/import-export" element={<ImportExportGuides />} />
+        <Route path="/guides/compliance-guides" element={<ComplianceGuides />} />
+        <Route path="/guides/market-reports" element={<MarketReports />} />
         <Route path="/compliance" element={<Compliance />} />
         <Route path="/privacy" element={<Privacy />} />
         <Route path="/terms" element={<Terms />} />
@@ -116,13 +133,16 @@ function AppRoutes() {
             </ProtectedRoute>
           }
         >
-          <Route index element={<Navigate to="/buyer/dashboard" replace />} />
-          <Route path="dashboard" element={<Dashboard />} />
+          <Route index element={<Navigate to="/buyer/rfqs" replace />} />
+          <Route path="dashboard" element={<Navigate to="/buyer/rfqs" replace />} />
+          <Route path="onboarding" element={<Onboarding />} />
           <Route path="rfqs" element={<RFQs />} />
           <Route path="rfqs/:id" element={<MyRFQs />} />
           <Route path="suppliers" element={<BuyerSuppliers />} />
           <Route path="messages" element={<Messages />} />
           <Route path="payments" element={<Payments />} />
+          <Route path="orders" element={<BuyerOrders />} />
+          <Route path="invoices" element={<BuyerInvoices />} />
           <Route path="profile" element={<Profile />} />
           <Route path="settings" element={<BuyerSettings />} />
         </Route>

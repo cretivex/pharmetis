@@ -14,7 +14,8 @@ import {
   XCircle,
   ArrowRight,
   Sun,
-  Moon
+  Moon,
+  MessageSquare
 } from 'lucide-react'
 import { useTheme } from '@/hooks/useTheme'
 import PageContainer from '@/components/layout/PageContainer'
@@ -45,6 +46,28 @@ export default function VendorLayout({ children }) {
     const interval = setInterval(loadNotifications, 30000)
     return () => clearInterval(interval)
   }, [])
+
+  useEffect(() => {
+    setSidebarOpen(false)
+  }, [location.pathname])
+
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 1024px)')
+    const onChange = () => {
+      if (mq.matches) setSidebarOpen(false)
+    }
+    mq.addEventListener('change', onChange)
+    return () => mq.removeEventListener('change', onChange)
+  }, [])
+
+  useEffect(() => {
+    if (!sidebarOpen) return
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = prev
+    }
+  }, [sidebarOpen])
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -123,60 +146,98 @@ export default function VendorLayout({ children }) {
   const navItems = [
     { path: '/supplier/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
     { path: '/supplier/rfqs', icon: FileText, label: 'RFQs' },
+    { path: '/supplier/messages', icon: MessageSquare, label: 'Messages' },
     { path: '/supplier/products', icon: Package, label: 'My Products' },
     { path: '/supplier/profile', icon: User, label: 'Profile' }
   ]
 
+  const NavLinks = ({ onNavigate }) => (
+    <>
+      <p className="mb-3 px-3 text-2xs font-semibold uppercase tracking-wider text-muted-foreground">Menu</p>
+      <nav className="space-y-0.5">
+        {navItems.map((item) => {
+          const Icon = item.icon
+          const isActive =
+            item.path === '/supplier/rfqs'
+              ? location.pathname.startsWith('/supplier/rfqs')
+              : location.pathname === item.path
+          return (
+            <Link
+              key={item.path}
+              to={item.path}
+              onClick={onNavigate}
+              className={`
+                relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200
+                ${isActive ? 'bg-primary/10 text-primary shadow-sm' : 'text-muted-foreground hover:bg-muted/80 hover:text-foreground'}
+              `}
+            >
+              {isActive ? (
+                <span className="absolute left-0 top-1/2 h-6 w-1 -translate-y-1/2 rounded-full bg-primary" aria-hidden />
+              ) : null}
+              <Icon className="h-5 w-5 shrink-0 opacity-90" />
+              {item.label}
+            </Link>
+          )
+        })}
+      </nav>
+    </>
+  )
+
   return (
-    <div className="min-h-screen bg-muted/25 text-foreground dark:bg-background">
-      <header className="sticky top-0 z-50 flex h-14 items-center justify-between border-b border-border/60 bg-background/90 px-4 backdrop-blur-md sm:h-16 sm:px-6 lg:px-8">
-        <div className="flex items-center gap-3 sm:gap-4">
+    <div className="flex min-h-[100dvh] min-h-screen flex-col overflow-hidden bg-muted/25 text-foreground dark:bg-background lg:h-[100dvh]">
+      <header className="sticky top-0 z-50 flex h-14 shrink-0 items-center justify-between border-b border-border/60 bg-background/90 px-3 backdrop-blur-md supports-[backdrop-filter]:bg-background/80 sm:h-16 sm:px-4 lg:px-6">
+        <div className="flex min-w-0 items-center gap-2 sm:gap-4">
           <button
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="rounded-xl p-2 text-muted-foreground transition-colors hover:bg-muted lg:hidden"
-            aria-label="Toggle menu"
+            type="button"
+            onClick={() => setSidebarOpen((o) => !o)}
+            className="shrink-0 rounded-xl p-2 text-muted-foreground transition-colors hover:bg-muted lg:hidden"
+            aria-label={sidebarOpen ? 'Close menu' : 'Open menu'}
           >
             {sidebarOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </button>
-          <Link to="/supplier/dashboard" className="group flex items-center gap-2.5">
-            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-emerald-700 text-xs font-bold text-primary-foreground shadow-sm ring-1 ring-primary/20 transition group-hover:shadow-md">
+          <Link to="/supplier/dashboard" className="group flex min-w-0 items-center gap-2.5">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-emerald-700 text-xs font-bold text-primary-foreground shadow-sm ring-1 ring-primary/20 transition group-hover:shadow-md">
               P
             </span>
-            <span className="text-base font-semibold tracking-tight text-foreground sm:text-lg">Supplier</span>
+            <span className="truncate text-base font-semibold tracking-tight text-foreground sm:text-lg">
+              Supplier
+            </span>
           </Link>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex shrink-0 items-center gap-1 sm:gap-2">
           <div className="relative" ref={notificationRef}>
             <button
+              type="button"
               onClick={() => setNotificationOpen(!notificationOpen)}
-              className="p-2.5 rounded-xl text-muted-foreground hover:bg-muted transition-colors relative"
+              className="relative rounded-xl p-2.5 text-muted-foreground transition-colors hover:bg-muted"
               aria-label="Notifications"
+              aria-expanded={notificationOpen}
             >
               <Bell className="h-5 w-5" />
-              {hasUnread && (
-                <span className="absolute top-1.5 right-1.5 h-2 w-2 bg-destructive rounded-full" />
-              )}
+              {hasUnread ? (
+                <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-destructive" />
+              ) : null}
             </button>
-            {notificationOpen && (
-              <Card className="absolute right-0 mt-2 w-80 max-h-96 overflow-hidden z-50 shadow-[0_6px_30px_rgba(0,0,0,0.05)] border border-border/50 rounded-2xl">
+            {notificationOpen ? (
+              <Card className="fixed right-3 top-16 z-[60] w-[min(20rem,calc(100vw-1.5rem))] max-h-[min(24rem,calc(100dvh-5rem))] overflow-hidden shadow-lg sm:absolute sm:right-0 sm:top-full sm:mt-2 sm:w-80">
                 <CardContent className="p-0">
-                  <div className="p-4 border-b border-border/50 flex items-center justify-between">
-                    <h3 className="font-semibold text-foreground text-sm">Notifications</h3>
-                    {hasUnread && (
-                      <span className="text-xs bg-destructive/10 text-destructive px-2 py-1 rounded-full">
+                  <div className="flex items-center justify-between border-b border-border/50 p-4">
+                    <h3 className="text-sm font-semibold text-foreground">Notifications</h3>
+                    {hasUnread ? (
+                      <span className="rounded-full bg-destructive/10 px-2 py-1 text-xs text-destructive">
                         {unreadCount} new
                       </span>
-                    )}
+                    ) : null}
                   </div>
-                  <div className="max-h-80 overflow-y-auto">
+                  <div className="max-h-72 overflow-y-auto overscroll-contain">
                     {loadingNotifications ? (
                       <div className="p-8 text-center text-muted-foreground">
-                        <Clock className="h-6 w-6 mx-auto mb-2 animate-spin" />
+                        <Clock className="mx-auto mb-2 h-6 w-6 animate-spin" />
                         <p className="text-sm">Loading...</p>
                       </div>
                     ) : notifications.length === 0 ? (
                       <div className="p-8 text-center text-muted-foreground">
-                        <Bell className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                        <Bell className="mx-auto mb-2 h-8 w-8 opacity-50" />
                         <p className="text-sm">No notifications</p>
                       </div>
                     ) : (
@@ -187,12 +248,13 @@ export default function VendorLayout({ children }) {
                           return (
                             <button
                               key={notification.id}
+                              type="button"
                               onClick={() => handleNotificationClick(notification.link)}
-                              className="w-full p-4 text-left hover:bg-muted/40 transition-colors"
+                              className="w-full p-4 text-left transition-colors hover:bg-muted/40"
                             >
                               <div className="flex items-start gap-3">
                                 <div
-                                  className={`flex-shrink-0 p-2 rounded-xl ${
+                                  className={`flex-shrink-0 rounded-xl p-2 ${
                                     notification.color === 'green'
                                       ? 'bg-green-500/10 text-green-600 dark:text-green-400'
                                       : notification.color === 'red'
@@ -202,12 +264,12 @@ export default function VendorLayout({ children }) {
                                 >
                                   <Icon className="h-4 w-4" />
                                 </div>
-                                <div className="flex-1 min-w-0">
+                                <div className="min-w-0 flex-1">
                                   <p className="text-sm font-medium text-foreground">{notification.title}</p>
-                                  <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{notification.message}</p>
-                                  <p className="text-xs text-muted-foreground/80 mt-1">{timeAgo}</p>
+                                  <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{notification.message}</p>
+                                  <p className="mt-1 text-xs text-muted-foreground/80">{timeAgo}</p>
                                 </div>
-                                <ArrowRight className="h-4 w-4 text-muted-foreground flex-shrink-0 mt-1" />
+                                <ArrowRight className="mt-1 h-4 w-4 shrink-0 text-muted-foreground" />
                               </div>
                             </button>
                           )
@@ -215,120 +277,69 @@ export default function VendorLayout({ children }) {
                       </div>
                     )}
                   </div>
-                  {notifications.length > 0 && (
-                    <div className="p-3 border-t border-border/50">
+                  {notifications.length > 0 ? (
+                    <div className="border-t border-border/50 p-3">
                       <button
+                        type="button"
                         onClick={() => {
                           setNotificationOpen(false)
                           navigate('/supplier/rfqs')
                         }}
-                        className="text-sm text-primary hover:underline w-full text-center"
+                        className="w-full text-center text-sm text-primary hover:underline"
                       >
                         View All RFQs
                       </button>
                     </div>
-                  )}
+                  ) : null}
                 </CardContent>
               </Card>
-            )}
+            ) : null}
           </div>
           <button
             type="button"
             onClick={toggleTheme}
-            className="p-2.5 rounded-xl text-muted-foreground hover:bg-muted/80 transition-colors"
+            className="rounded-xl p-2.5 text-muted-foreground transition-colors hover:bg-muted/80"
             aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
           >
             {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
           </button>
-          <Button variant="ghost" size="sm" onClick={handleLogout} className="text-muted-foreground hover:text-foreground hover:bg-muted/80">
-            <LogOut className="h-4 w-4 mr-2" />
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleLogout}
+            className="hidden text-muted-foreground hover:text-foreground hover:bg-muted/80 sm:inline-flex"
+          >
+            <LogOut className="mr-2 h-4 w-4" />
             Logout
           </Button>
         </div>
       </header>
 
-      <div className="flex">
-        <aside
-          className={`
-            fixed inset-y-0 left-0 z-40 hidden w-64 flex-col border-r border-border/60 bg-sidebar/95 px-4 py-8 shadow-sm backdrop-blur-xl
-            transition-transform duration-200 ease-out
-            lg:flex
-            ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
-            pt-[3.5rem] lg:pt-8
-          `}
-        >
-          <p className="mb-3 px-3 text-2xs font-semibold uppercase tracking-wider text-muted-foreground">Menu</p>
-          <nav className="space-y-0.5">
-            {navItems.map((item) => {
-              const Icon = item.icon
-              const isActive = location.pathname === item.path
-              return (
-                <Link
-                  key={item.path}
-                  to={item.path}
-                  onClick={() => setSidebarOpen(false)}
-                  className={`
-                    relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200
-                    ${isActive ? 'bg-primary/10 text-primary shadow-sm' : 'text-muted-foreground hover:bg-muted/80 hover:text-foreground'}
-                  `}
-                >
-                  {isActive ? (
-                    <span className="absolute left-0 top-1/2 h-6 w-1 -translate-y-1/2 rounded-full bg-primary" aria-hidden />
-                  ) : null}
-                  <Icon className="h-5 w-5 shrink-0 opacity-90" />
-                  {item.label}
-                </Link>
-              )
-            })}
-          </nav>
-        </aside>
-
-        {/* Mobile sidebar overlay */}
-        {sidebarOpen && (
-          <div
-            className="fixed inset-0 bg-black/20 backdrop-blur-sm z-30 lg:hidden"
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden lg:flex-row">
+        {sidebarOpen ? (
+          <button
+            type="button"
+            className="fixed inset-0 z-40 bg-black/30 backdrop-blur-sm transition-opacity lg:hidden"
+            aria-label="Close navigation"
             onClick={() => setSidebarOpen(false)}
-            aria-hidden
           />
-        )}
+        ) : null}
 
-        {/* Mobile sidebar drawer (same style as desktop when open) */}
         <aside
           className={`
-            fixed left-0 top-0 z-40 h-full w-64 border-r border-border/60 bg-sidebar/98 px-4 py-8 pt-20 shadow-lg backdrop-blur-xl
-            transition-transform duration-200 ease-out
-            lg:hidden
-            ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+            fixed inset-y-0 left-0 z-40 flex w-64 max-w-[min(20rem,calc(100vw-1rem))] flex-col overflow-y-auto overflow-x-hidden overscroll-contain border-r border-border/60 bg-sidebar/98 px-4 py-6 shadow-xl backdrop-blur-xl transition-transform duration-200 ease-out
+            lg:sticky lg:top-0 lg:z-0 lg:h-full lg:max-w-none lg:translate-x-0 lg:shrink-0 lg:shadow-none
+            ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+            pt-[calc(3.5rem+env(safe-area-inset-top,0px))] lg:pt-6
           `}
         >
-          <p className="mb-3 px-3 text-2xs font-semibold uppercase tracking-wider text-muted-foreground">Menu</p>
-          <nav className="space-y-0.5">
-            {navItems.map((item) => {
-              const Icon = item.icon
-              const isActive = location.pathname === item.path
-              return (
-                <Link
-                  key={item.path}
-                  to={item.path}
-                  onClick={() => setSidebarOpen(false)}
-                  className={`
-                    relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200
-                    ${isActive ? 'bg-primary/10 text-primary shadow-sm' : 'text-muted-foreground hover:bg-muted/80 hover:text-foreground'}
-                  `}
-                >
-                  {isActive ? (
-                    <span className="absolute left-0 top-1/2 h-6 w-1 -translate-y-1/2 rounded-full bg-primary" aria-hidden />
-                  ) : null}
-                  <Icon className="h-5 w-5 shrink-0 opacity-90" />
-                  {item.label}
-                </Link>
-              )
-            })}
-          </nav>
+          <NavLinks onNavigate={() => setSidebarOpen(false)} />
         </aside>
 
-        <main className="min-w-0 flex-1 overflow-x-hidden lg:ml-64">
-          <PageContainer>{children}</PageContainer>
+        <main className="min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-y-contain lg:flex lg:flex-col">
+          <div className="min-h-0 flex-1">
+            <PageContainer>{children}</PageContainer>
+          </div>
         </main>
       </div>
     </div>

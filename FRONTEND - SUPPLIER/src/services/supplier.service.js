@@ -17,3 +17,11 @@ export const uploadSupplierLogo = async (file) => {
   return response.data?.url || response.data?.data?.url || null
 }
 
+/** PDF / Office company documents (S3). */
+export const uploadSupplierDocument = async (file) => {
+  const formData = new FormData()
+  formData.append('file', file)
+  const response = await api.post('/upload/documents', formData)
+  return response.data?.url || response.data?.data?.url || null
+}
+

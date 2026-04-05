@@ -16,10 +16,30 @@ import {
 import { sendResetOtpSupplierService, resetPasswordWithOtpSupplierService } from './supplier-auth.service.js';
 import { logger } from '../../utils/logger.js';
 import { ApiError } from '../../utils/ApiError.js';
+import { setAuthCookies } from '../../utils/authCookies.js';
+import {
+  getJson,
+  setJson,
+  suppliersListCacheKey
+} from '../../utils/redisJsonCache.js';
+
+const SUPPLIERS_LIST_CACHE_TTL_SEC = 300;
 
 export const getSuppliers = async (req, res, next) => {
   try {
+    const cacheKey = suppliersListCacheKey(req.query);
+    const cached = await getJson(cacheKey);
+    if (cached) {
+      return res.status(200).json({
+        success: true,
+        message: 'Suppliers retrieved successfully',
+        data: cached
+      });
+    }
+
     const result = await getSuppliersService(req.query);
+    await setJson(cacheKey, result, SUPPLIERS_LIST_CACHE_TTL_SEC);
+
     res.status(200).json({
       success: true,
       message: 'Suppliers retrieved successfully',
@@ -179,6 +199,8 @@ export const verifySupplierOTP = async (req, res, next) => {
 
     // Verify OTP
     const result = await verifySupplierOTPService(email, otpCode);
+
+    setAuthCookies(res, result.accessToken, result.refreshToken);
 
     return res.status(200).json({
       success: true,

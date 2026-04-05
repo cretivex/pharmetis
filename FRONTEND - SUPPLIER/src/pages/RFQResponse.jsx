@@ -965,7 +965,7 @@ export default function RFQResponse() {
                     browse
                   </button>
                 </p>
-                <p className="text-xs text-muted-foreground">PDF, DOC, DOCX, XLS, XLSX (max 20MB)</p>
+                <p className="text-xs text-muted-foreground">PDF, DOC, DOCX, XLS, XLSX (max 10MB per file)</p>
               </div>
               {attachments.length > 0 && (
                 <div className="mt-4 space-y-2">

@@ -27,12 +27,6 @@ export const settingsService = {
     return response.data || response;
   },
 
-  /** Set password when you don't have one yet (e.g. signed up with OTP). No current password required. */
-  async setPassword(newPassword) {
-    const response = await api.post('/users/password/set', { newPassword });
-    return response.data || response;
-  },
-
   // Settings
   async getSettings() {
     const response = await api.get('/users/settings');

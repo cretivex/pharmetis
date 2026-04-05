@@ -1,8 +1,16 @@
 import { useState, useEffect, useMemo } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
-import { 
-  ArrowLeft, AlertCircle, CheckCircle2, 
-  MapPin, Package, DollarSign, CreditCard, Truck
+import { useParams, useNavigate, Link } from 'react-router-dom'
+import {
+  ArrowLeft,
+  ArrowRight,
+  AlertCircle,
+  CheckCircle2,
+  MapPin,
+  Package,
+  DollarSign,
+  CreditCard,
+  Truck,
+  Loader2,
 } from 'lucide-react'
 import Card from '../components/ui/Card'
 import Button from '../components/ui/Button'
@@ -16,9 +24,13 @@ import { rfqService } from '../services/rfq.service'
 import { authService } from '../services/auth.service'
 import { validation } from '../utils/validation'
 import { useCurrency } from '../contexts/CurrencyContext'
+import { useProfileCompletion } from '../contexts/ProfileCompletionContext'
 
 export default function Checkout() {
   const { formatPrice } = useCurrency()
+  const { complete: profileComplete, missingFields, isBuyer, loading: profileLoading } =
+    useProfileCompletion()
+  const profileBlockCheckout = isBuyer && !profileComplete
   const { quotationId } = useParams()
   const navigate = useNavigate()
   const [loading, setLoading] = useState(true)
@@ -131,7 +143,11 @@ export default function Checkout() {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    
+
+    if (profileBlockCheckout) {
+      return
+    }
+
     // Validate form - DO NOT proceed if invalid
     const errors = {}
     
@@ -344,6 +360,35 @@ export default function Checkout() {
           <h1 className="text-3xl font-bold text-slate-900">Checkout</h1>
           <p className="text-gray-600 mt-2">Complete your order by providing delivery information</p>
         </div>
+
+        {profileLoading && isBuyer && (
+          <div className="mb-6 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+            Checking your buyer profile…
+          </div>
+        )}
+
+        {profileBlockCheckout && !profileLoading && (
+          <div className="mb-6 flex flex-col gap-4 rounded-2xl border border-amber-200/80 bg-gradient-to-br from-amber-50 to-white p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:p-6">
+            <div className="flex items-start gap-3">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-700">
+                <AlertCircle className="h-5 w-5" />
+              </span>
+              <div>
+                <p className="font-semibold text-amber-950">Finish your buyer profile</p>
+                <p className="mt-1 text-sm text-amber-900/80">
+                  Complete your company profile before placing an order. Missing: {missingFields.join(', ')}.
+                </p>
+              </div>
+            </div>
+            <Link
+              to="/settings?tab=profile"
+              className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-zinc-900 px-5 py-2.5 text-sm font-semibold text-white shadow-md transition hover:bg-zinc-800"
+            >
+              Open settings
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+          </div>
+        )}
 
         {/* Validation Alert (Amber) */}
         {showValidationAlert && Object.keys(validationErrors).length > 0 && (
@@ -586,7 +631,7 @@ export default function Checkout() {
                     <Button
                       type="submit"
                       className="h-12 w-full bg-neutral-900 text-white hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-50"
-                      disabled={submitting}
+                      disabled={submitting || profileBlockCheckout || profileLoading}
                     >
                       {submitting ? (
                         <>

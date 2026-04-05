@@ -15,6 +15,7 @@ import EditProduct from '@/pages/products/EditProduct'
 import RFQList from '@/pages/rfqs/RFQList'
 import RFQResponse from '@/pages/rfqs/RFQResponse'
 import Profile from '@/pages/profile/Profile'
+import SupplierMessages from '@/pages/SupplierMessages'
 
 import NotFound from '@/pages/NotFound'
 
@@ -103,6 +104,16 @@ export function AppRoutes() {
           <ProtectedRoute>
             <VendorLayout>
               <Profile />
+            </VendorLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/supplier/messages"
+        element={
+          <ProtectedRoute>
+            <VendorLayout>
+              <SupplierMessages />
             </VendorLayout>
           </ProtectedRoute>
         }

@@ -31,6 +31,25 @@ const imageFileFilter = (req, file, cb) => {
   cb(new Error('Invalid file type. Allowed types: jpg, jpeg, png, webp.'), false);
 };
 
+/** PDF and common office formats for company / compliance uploads (upload type `documents`). */
+const DOCUMENT_MIME_TYPES = new Set([
+  'application/pdf',
+  'application/msword',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/vnd.ms-excel',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+]);
+const DOCUMENT_EXTENSIONS = new Set(['.pdf', '.doc', '.docx', '.xls', '.xlsx']);
+
+const documentFileFilter = (req, file, cb) => {
+  const ext = path.extname(file.originalname || '').toLowerCase();
+  if (DOCUMENT_EXTENSIONS.has(ext) || DOCUMENT_MIME_TYPES.has(file.mimetype)) {
+    cb(null, true);
+    return;
+  }
+  cb(new Error('Invalid file type. Allowed types: pdf, doc, docx, xls, xlsx.'), false);
+};
+
 const s3Storage = hasS3Config()
   ? multerS3({
       s3: s3Client,
@@ -53,6 +72,14 @@ export const uploadImageToS3 = multer({
   fileFilter: imageFileFilter,
   limits: {
     fileSize: 5 * 1024 * 1024
+  }
+});
+
+export const uploadDocumentToS3 = multer({
+  storage: s3Storage,
+  fileFilter: documentFileFilter,
+  limits: {
+    fileSize: 10 * 1024 * 1024
   }
 });
 

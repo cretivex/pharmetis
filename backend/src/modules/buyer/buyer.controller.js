@@ -1,10 +1,12 @@
-import { 
+import {
   createBuyerRFQService,
   getBuyerRFQsService,
   getBuyerRFQByIdService,
   acceptBuyerQuotationService,
   rejectBuyerQuotationService,
-  requestLowerPriceService
+  requestLowerPriceService,
+  listBuyerOrdersService,
+  listBuyerInvoicesService,
 } from './buyer.service.js';
 import { updateCompanyInfoService } from '../users/company.service.js';
 import { ApiError } from '../../utils/ApiError.js';
@@ -319,6 +321,30 @@ export const updateBuyerCompany = async (req, res, next) => {
     });
   } catch (error) {
     logger.error('Update buyer company error:', error);
+    next(error);
+  }
+};
+
+export const getBuyerOrders = async (req, res, next) => {
+  try {
+    if (!req.user || !['BUYER', 'ADMIN'].includes(req.user.role)) {
+      return res.status(403).json({ success: false, message: 'Only buyers can view orders' });
+    }
+    const data = await listBuyerOrdersService(req.user.id);
+    return res.status(200).json({ success: true, data });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getBuyerInvoices = async (req, res, next) => {
+  try {
+    if (!req.user || !['BUYER', 'ADMIN'].includes(req.user.role)) {
+      return res.status(403).json({ success: false, message: 'Only buyers can view invoices' });
+    }
+    const data = await listBuyerInvoicesService(req.user.id);
+    return res.status(200).json({ success: true, data });
+  } catch (error) {
     next(error);
   }
 };

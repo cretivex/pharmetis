@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useDispatch } from 'react-redux'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ArrowLeft, Eye, EyeOff, AlertCircle, CheckCircle2 } from 'lucide-react'
 import { otpService } from '../services/otp.service.js'
@@ -16,6 +16,7 @@ const fadeUp = {
 function Register() {
   const dispatch = useDispatch()
   const navigate = useNavigate()
+  const location = useLocation()
   const [step, setStep] = useState('email')
   const [formData, setFormData] = useState({
     email: '',
@@ -95,7 +96,19 @@ function Register() {
         formData.password || null
       )
       dispatch(setUser(user))
-      navigate('/')
+      const returnTo = location.state?.from
+      if (
+        typeof returnTo === 'string' &&
+        returnTo.startsWith('/') &&
+        !returnTo.startsWith('//') &&
+        returnTo !== '/login' &&
+        returnTo !== '/register'
+      ) {
+        const sep = returnTo.includes('?') ? '&' : '?'
+        navigate(`${returnTo}${sep}welcome=1`, { replace: true })
+      } else {
+        navigate('/?welcome=1', { replace: true })
+      }
     } catch (err) {
       setError(err.response?.data?.message || err.message || 'Invalid code. Please try again.')
     } finally {

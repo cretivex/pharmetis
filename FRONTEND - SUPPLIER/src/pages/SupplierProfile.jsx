@@ -11,7 +11,12 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { getSupplierProfile, updateSupplierProfile, uploadSupplierLogo } from '@/services/supplier.service.js'
+import {
+  getSupplierProfile,
+  updateSupplierProfile,
+  uploadSupplierLogo,
+  uploadSupplierDocument
+} from '@/services/supplier.service.js'
 import { Loader2 } from 'lucide-react'
 
 const resolveImageUrl = (source) => {
@@ -64,7 +69,15 @@ export default function SupplierProfile() {
         logo: supplierLogo,
         logo_url: supplierLogo,
         gstNumber: supplier.gstNumber || '',
-        licenseNumber: supplier.licenseNumber || ''
+        licenseNumber: supplier.licenseNumber || '',
+        certifications: (supplier.certifications || []).map((c) => ({
+          type: c.type || '',
+          number: c.number || '',
+          issuedBy: c.issuedBy || '',
+          document: c.document || '',
+          issuedDate: c.issuedDate ? String(c.issuedDate).slice(0, 10) : '',
+          expiryDate: c.expiryDate ? String(c.expiryDate).slice(0, 10) : ''
+        }))
       })
     }
   }, [supplier, isEditing])
@@ -108,6 +121,50 @@ export default function SupplierProfile() {
     }
   }
 
+  const updateCertRow = (index, field, value) => {
+    setFormData((prev) => {
+      const list = [...(prev.certifications || [])]
+      list[index] = { ...list[index], [field]: value }
+      return { ...prev, certifications: list }
+    })
+  }
+
+  const addCertificationRow = () => {
+    setFormData((prev) => ({
+      ...prev,
+      certifications: [
+        ...(prev.certifications || []),
+        {
+          type: '',
+          number: '',
+          issuedBy: '',
+          document: '',
+          issuedDate: '',
+          expiryDate: ''
+        }
+      ]
+    }))
+  }
+
+  const removeCertificationRow = (index) => {
+    setFormData((prev) => {
+      const list = [...(prev.certifications || [])]
+      list.splice(index, 1)
+      return { ...prev, certifications: list }
+    })
+  }
+
+  const handleCertDocumentUpload = async (index, file) => {
+    try {
+      setError(null)
+      const url = await uploadSupplierDocument(file)
+      if (url) updateCertRow(index, 'document', url)
+    } catch (error) {
+      console.error('Document upload error:', error)
+      setError(error.response?.data?.message || error.message || 'Failed to upload document')
+    }
+  }
+
   const handleSave = async () => {
     try {
       setSaving(true)
@@ -135,6 +192,18 @@ export default function SupplierProfile() {
       // Remove gstNumber and licenseNumber as they're not in Supplier model
       delete updateData.gstNumber
       delete updateData.licenseNumber
+
+      const certs = Array.isArray(formData.certifications) ? formData.certifications : []
+      updateData.certifications = certs
+        .filter((c) => c.type && String(c.type).trim())
+        .map((c) => ({
+          type: String(c.type).trim(),
+          number: c.number ? String(c.number).trim() : null,
+          issuedBy: c.issuedBy ? String(c.issuedBy).trim() : null,
+          document: c.document ? String(c.document).trim() : null,
+          issuedDate: c.issuedDate ? new Date(c.issuedDate).toISOString() : null,
+          expiryDate: c.expiryDate ? new Date(c.expiryDate).toISOString() : null
+        }))
 
       const response = await updateSupplierProfile(updateData)
       
@@ -856,12 +925,22 @@ export default function SupplierProfile() {
                     )}
                   </div>
                 </div>
-                {!supplier?.isVerified && (
+                {supplier?.isVerified ? (
+                  <div className="pt-4 mt-4 border-t">
+                    <div className="flex items-start gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3 dark:bg-emerald-500/15">
+                      <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-700 dark:text-emerald-300" aria-hidden />
+                      <p className="text-xs text-emerald-950 dark:text-emerald-100">
+                        Email verification is complete and your supplier profile is marked verified for the marketplace.
+                        List products so buyers can find you in search.
+                      </p>
+                    </div>
+                  </div>
+                ) : (
                   <div className="pt-4 mt-4 border-t">
                     <div className="flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 dark:bg-amber-500/15">
                       <Clock className="mt-0.5 h-4 w-4 shrink-0 text-amber-700 dark:text-amber-300" aria-hidden />
                       <p className="text-xs text-amber-950 dark:text-amber-100">
-                        Your registration is under review. You&apos;ll be notified by email once approved.
+                        Not verified yet. Complete the OTP sent to your email during registration, then sign in again.
                       </p>
                     </div>
                   </div>
@@ -953,32 +1032,118 @@ export default function SupplierProfile() {
           </Card>
 
           {/* Certifications Card */}
-          {supplier.certifications && supplier.certifications.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Award className="h-5 w-5 text-primary" />
-                  Certifications
-                </CardTitle>
-                <CardDescription>Your company certifications</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  {supplier.certifications.map((cert, index) => (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Award className="h-5 w-5 text-primary" />
+                Certifications
+              </CardTitle>
+              <CardDescription>
+                Upload compliance documents (PDF, Office). Saved when you save profile.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {isEditing ? (
+                <>
+                  {(formData.certifications || []).map((cert, index) => (
                     <div
                       key={index}
-                      className="flex items-center gap-2 rounded-md border border-border/60 bg-muted/40 p-2 dark:bg-muted/25"
+                      className="space-y-3 rounded-lg border border-border/60 bg-muted/30 p-4 dark:bg-muted/20"
                     >
-                      <Award className="h-4 w-4 shrink-0 text-primary" aria-hidden />
-                      <span className="text-sm text-foreground">
-                        {cert.name || `Certification ${index + 1}`}
-                      </span>
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <div>
+                          <Label htmlFor={`cert-type-${index}`}>Type / name</Label>
+                          <Input
+                            id={`cert-type-${index}`}
+                            value={cert.type}
+                            onChange={(e) => updateCertRow(index, 'type', e.target.value)}
+                            placeholder="e.g. WHO-GMP, ISO 9001"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor={`cert-num-${index}`}>Certificate number</Label>
+                          <Input
+                            id={`cert-num-${index}`}
+                            value={cert.number}
+                            onChange={(e) => updateCertRow(index, 'number', e.target.value)}
+                          />
+                        </div>
+                        <div className="sm:col-span-2">
+                          <Label htmlFor={`cert-file-${index}`}>Document file</Label>
+                          <div className="mt-1 flex flex-wrap items-center gap-2">
+                            <input
+                              id={`cert-file-${index}`}
+                              type="file"
+                              accept=".pdf,.doc,.docx,.xls,.xlsx,application/pdf"
+                              className="text-sm file:mr-2 file:rounded-md file:border-0 file:bg-primary file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-primary-foreground"
+                              onChange={(e) => {
+                                const f = e.target.files?.[0]
+                                if (f) handleCertDocumentUpload(index, f)
+                                e.target.value = ''
+                              }}
+                            />
+                            {cert.document ? (
+                              <a
+                                href={cert.document}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1 text-sm text-primary underline-offset-2 hover:underline"
+                              >
+                                <ExternalLink className="h-3.5 w-3.5" aria-hidden />
+                                View file
+                              </a>
+                            ) : null}
+                          </div>
+                        </div>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => removeCertificationRow(index)}
+                      >
+                        Remove
+                      </Button>
                     </div>
                   ))}
+                  <Button type="button" variant="secondary" size="sm" onClick={addCertificationRow}>
+                    Add certification
+                  </Button>
+                </>
+              ) : (
+                <div className="space-y-2">
+                  {supplier.certifications && supplier.certifications.length > 0 ? (
+                    supplier.certifications.map((cert, index) => (
+                      <div
+                        key={cert.id || index}
+                        className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border/60 bg-muted/40 p-3 dark:bg-muted/25"
+                      >
+                        <div className="flex items-center gap-2 min-w-0">
+                          <Award className="h-4 w-4 shrink-0 text-primary" aria-hidden />
+                          <span className="text-sm font-medium text-foreground truncate">
+                            {cert.type || `Certification ${index + 1}`}
+                          </span>
+                        </div>
+                        {cert.document ? (
+                          <a
+                            href={cert.document}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 text-sm text-primary shrink-0"
+                          >
+                            <ExternalLink className="h-3.5 w-3.5" aria-hidden />
+                            Document
+                          </a>
+                        ) : null}
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-sm text-muted-foreground">No certifications on file. Edit profile to add.</p>
+                  )}
                 </div>
-              </CardContent>
-            </Card>
-          )}
+              )}
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>

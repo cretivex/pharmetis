@@ -1,7 +1,8 @@
 import express from 'express';
 import multer from 'multer';
 import { 
-  getProducts, 
+  getProducts,
+  getProductsFilter,
   getProductBySlug, 
   getProductById, 
   getFeaturedProducts,
@@ -36,6 +37,7 @@ const upload = multer({
 
 // Public routes
 router.get('/', getProducts);
+router.get('/filter', getProductsFilter);
 router.get('/featured', getFeaturedProducts);
 router.get('/slug/:slug', getProductBySlug);
 

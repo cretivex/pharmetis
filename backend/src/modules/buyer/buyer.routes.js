@@ -1,12 +1,14 @@
 import express from 'express';
-import { 
+import {
   createBuyerRFQ,
   getBuyerRFQs,
   getBuyerRFQById,
   acceptBuyerQuotation,
   rejectBuyerQuotation,
   requestLowerPrice,
-  updateBuyerCompany
+  updateBuyerCompany,
+  getBuyerOrders,
+  getBuyerInvoices,
 } from './buyer.controller.js';
 import { authenticate, authorize } from '../../middlewares/auth.middleware.js';
 import { validate } from '../../middlewares/validate.middleware.js';
@@ -19,6 +21,8 @@ router.use(authenticate);
 router.use(authorize('BUYER', 'ADMIN'));
 
 router.put('/company', updateBuyerCompany);
+router.get('/orders', getBuyerOrders);
+router.get('/invoices', getBuyerInvoices);
 router.post('/rfqs', validate(createBuyerRFQSchema), createBuyerRFQ);
 router.get('/rfqs', getBuyerRFQs);
 router.get('/rfqs/:id', getBuyerRFQById);

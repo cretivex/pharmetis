@@ -4,6 +4,7 @@ import AboutMission from '../components/about/AboutMission'
 import AboutWhoWeAre from '../components/about/AboutWhoWeAre'
 import AboutWhyChoose from '../components/about/AboutWhyChoose'
 import AboutContact from '../components/about/AboutContact'
+import AboutTestimonials from '../components/about/AboutTestimonials'
 
 /**
  * Matches reference_User_Ui/pages/AboutPage.jsx — sections only; Navbar/Footer come from MainLayout.
@@ -70,6 +71,7 @@ function About() {
       <AboutMission />
       <AboutWhoWeAre />
       <AboutWhyChoose />
+      <AboutTestimonials />
       <AboutContact />
     </div>
   )

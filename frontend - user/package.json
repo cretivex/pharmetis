@@ -9,6 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@tanstack/react-query": "^5.62.0",
     "@reduxjs/toolkit": "^2.11.2",
     "axios": "^1.13.6",
     "crypto-js": "^4.2.0",

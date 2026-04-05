@@ -1,1 +1,1 @@
-export { default } from '../SupplierDashboard'
+export { default } from './SupplierRFQList'

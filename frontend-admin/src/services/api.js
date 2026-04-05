@@ -77,9 +77,9 @@ api.interceptors.response.use(
       return Promise.reject(error);
     }
 
+    // 403 = forbidden (RBAC / missing permission). Do not clear session — let the UI show an error.
     if (error.response?.status === 403) {
       logError(error, { context: 'api_403' });
-      clearTokensAndRedirect();
       return Promise.reject(error);
     }
 

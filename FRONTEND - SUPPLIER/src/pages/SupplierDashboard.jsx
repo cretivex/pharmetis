@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams, Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   FileText,
@@ -26,6 +26,14 @@ import { getAssignedRFQs, getMyResponses, getSupplierRfqs } from '@/services/rfq
 
 export default function SupplierDashboard() {
   const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const showOnboarding = searchParams.get('onboarding') === '1'
+
+  const dismissOnboarding = () => {
+    const next = new URLSearchParams(searchParams)
+    next.delete('onboarding')
+    setSearchParams(next, { replace: true })
+  }
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [rfqs, setRfqs] = useState([])
@@ -320,6 +328,32 @@ export default function SupplierDashboard() {
 
   return (
     <div className="space-y-10">
+      {showOnboarding && (
+        <div
+          className="rounded-xl border border-primary/25 bg-primary/5 px-4 py-3 text-sm text-foreground"
+          role="status"
+        >
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="font-medium">Welcome — finish your supplier setup</p>
+              <p className="mt-1 text-muted-foreground">
+                Add compliance documents under{' '}
+                <Link to="/supplier/profile" className="text-primary underline-offset-2 hover:underline">
+                  Company profile
+                </Link>
+                , then list your catalog under{' '}
+                <Link to="/supplier/products" className="text-primary underline-offset-2 hover:underline">
+                  Products
+                </Link>
+                .
+              </p>
+            </div>
+            <Button type="button" variant="secondary" size="sm" onClick={dismissOnboarding}>
+              Got it
+            </Button>
+          </div>
+        </div>
+      )}
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>

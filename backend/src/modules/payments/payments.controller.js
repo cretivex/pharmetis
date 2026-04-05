@@ -1,6 +1,31 @@
-import { createPaymentService, confirmPaymentService } from './payments.service.js';
+import {
+  createPaymentService,
+  confirmPaymentService,
+  listPaymentsForBuyerService,
+} from './payments.service.js';
 import { ApiError } from '../../utils/ApiError.js';
 import { logger } from '../../utils/logger.js';
+
+export const listMyPayments = async (req, res, next) => {
+  try {
+    if (!req.user || req.user.role !== 'BUYER') {
+      return res.status(403).json({
+        success: false,
+        message: 'Only buyers can list payments',
+      });
+    }
+    const page = parseInt(req.query.page, 10) || 1;
+    const limit = parseInt(req.query.limit, 10) || 50;
+    const data = await listPaymentsForBuyerService(req.user.id, { page, limit });
+    return res.status(200).json({
+      success: true,
+      message: 'Payments retrieved successfully',
+      data,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
 
 export const createPayment = async (req, res, next) => {
   try {

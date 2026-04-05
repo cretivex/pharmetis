@@ -101,11 +101,6 @@ function Settings() {
     newPassword: '',
     confirmPassword: ''
   });
-  const [newPasswordForm, setNewPasswordForm] = useState({
-    newPassword: '',
-    confirmPassword: ''
-  });
-
   // Notifications state
   const [settings, setSettings] = useState({
     language: 'en',
@@ -433,33 +428,6 @@ function Settings() {
       setTimeout(() => setSaved(false), 3000);
     } catch (err) {
       setError(err.response?.data?.message || err.message || 'Failed to change password');
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleSetPassword = async () => {
-    if (!newPasswordForm.newPassword.trim()) {
-      setError('Please enter a new password');
-      return;
-    }
-    if (newPasswordForm.newPassword.length < 8) {
-      setError('Password must be at least 8 characters');
-      return;
-    }
-    if (newPasswordForm.newPassword !== newPasswordForm.confirmPassword) {
-      setError('Passwords do not match');
-      return;
-    }
-    try {
-      setSaving(true);
-      setError(null);
-      await settingsService.setPassword(newPasswordForm.newPassword);
-      setNewPasswordForm({ newPassword: '', confirmPassword: '' });
-      setSaved(true);
-      setTimeout(() => setSaved(false), 3000);
-    } catch (err) {
-      setError(err.response?.data?.message || err.message || 'Failed to set password');
     } finally {
       setSaving(false);
     }
@@ -926,46 +894,6 @@ function Settings() {
 
                     <div className="space-y-10">
                       <div>
-                        <h3 className="text-sm font-medium text-slate-900 mb-1">Set password for email login</h3>
-                        <p className="text-sm text-slate-600 mb-4">If you signed up with OTP only, set a password here to log in with email + password next time.</p>
-                        <div className="space-y-4">
-                          <div className="flex flex-col gap-2">
-                            <label htmlFor="setNewPassword" className="text-sm font-medium text-slate-900">New Password</label>
-                            <input
-                              id="setNewPassword"
-                              type="password"
-                              value={newPasswordForm.newPassword}
-                              onChange={(e) => setNewPasswordForm({ ...newPasswordForm, newPassword: e.target.value })}
-                              placeholder="At least 8 characters"
-                              className="h-11 rounded-lg border border-slate-200 bg-white px-4 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all duration-200"
-                            />
-                          </div>
-                          <div className="flex flex-col gap-2">
-                            <label htmlFor="setConfirmPassword" className="text-sm font-medium text-slate-900">Confirm Password</label>
-                            <input
-                              id="setConfirmPassword"
-                              type="password"
-                              value={newPasswordForm.confirmPassword}
-                              onChange={(e) => setNewPasswordForm({ ...newPasswordForm, confirmPassword: e.target.value })}
-                              placeholder="••••••••"
-                              className="h-11 rounded-lg border border-slate-200 bg-white px-4 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all duration-200"
-                            />
-                          </div>
-                          <div className="flex justify-end pt-2">
-                            <button
-                              type="button"
-                              onClick={handleSetPassword}
-                              disabled={saving}
-                              className="h-11 px-6 rounded-lg bg-neutral-900 text-white hover:bg-neutral-800 text-sm font-medium shadow-[0_4px_14px_rgba(0,0,0,0.12)] hover:shadow-[0_6px_20px_rgba(0,0,0,0.18)] transition-all duration-200 disabled:opacity-50 flex items-center gap-2"
-                            >
-                              <Key className="w-4 h-4" />
-                              {saving ? 'Setting...' : 'Set Password'}
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="pt-8 border-t border-blue-200">
                         <h3 className="text-sm font-medium text-slate-900 mb-4">Change Password</h3>
                         <div className="space-y-4">
                           <div className="flex flex-col gap-2">

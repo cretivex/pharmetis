@@ -88,6 +88,12 @@ function FilterRow({ icon: Icon, label, selected, onToggle }) {
   )
 }
 
+const CERT_OPTIONS = [
+  { value: 'GMP', label: 'GMP / WHO-GMP' },
+  { value: 'FDA', label: 'FDA' },
+  { value: 'ISO', label: 'ISO' },
+]
+
 export default function MedicinesSidebar({
   meta,
   filters,
@@ -96,6 +102,10 @@ export default function MedicinesSidebar({
   toggleSection,
   onClearCategories,
   onClearCountries,
+  onCategorySlugChange,
+  onPriceRangeChange,
+  onMinMoqChange,
+  onClearCertifications,
   showMobileFilters,
   onCloseMobileFilters,
   dosageLabels,
@@ -142,27 +152,115 @@ export default function MedicinesSidebar({
             <div className="flex flex-col gap-2 pb-3">
             {categories.length > 0 ? (
               <FilterCard
-                title="Categories"
+                title="Category"
                 open={expandedSections.categories}
                 onToggle={() => toggleSection('categories')}
-                showClear={filters.categoryIds.length > 0}
+                showClear={Boolean(filters.categorySlug)}
                 onClear={onClearCategories}
               >
-                {categories.map((c, i) => {
-                  const Icon = pickCategoryIcon(i)
-                  const checked = filters.categoryIds.includes(c.id)
-                  return (
-                    <FilterRow
-                      key={c.id}
-                      icon={Icon}
-                      label={c.name}
-                      selected={checked}
-                      onToggle={() => toggleFilter('categoryIds', c.id)}
-                    />
-                  )
-                })}
+                <div className="px-2 py-2 sm:px-2.5">
+                  <label className="sr-only" htmlFor="medicines-category-select">
+                    Product category
+                  </label>
+                  <select
+                    id="medicines-category-select"
+                    value={filters.categorySlug || ''}
+                    onChange={(e) => onCategorySlugChange(e.target.value)}
+                    className="w-full rounded-lg border border-slate-200 bg-white px-2 py-2 text-[12px] font-medium text-slate-800 shadow-sm focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400"
+                  >
+                    <option value="">All categories</option>
+                    {categories.map((c) => (
+                      <option key={c.id} value={c.slug || c.id}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </FilterCard>
             ) : null}
+
+            <FilterCard
+              title="Certification"
+              open={expandedSections.certification}
+              onToggle={() => toggleSection('certification')}
+              showClear={filters.certification?.length > 0}
+              onClear={onClearCertifications}
+            >
+              {CERT_OPTIONS.map((opt) => (
+                <FilterRow
+                  key={opt.value}
+                  icon={Shield}
+                  label={opt.label}
+                  selected={filters.certification?.includes(opt.value)}
+                  onToggle={() => toggleFilter('certification', opt.value)}
+                />
+              ))}
+            </FilterCard>
+
+            <FilterCard
+              title="Price range"
+              open={expandedSections.price}
+              onToggle={() => toggleSection('price')}
+              showClear={Boolean(filters.minPrice || filters.maxPrice)}
+              onClear={() => onPriceRangeChange('', '')}
+            >
+              <div className="flex flex-col gap-2 px-2 py-2 sm:px-2.5">
+                <div className="flex items-center gap-2">
+                  <label className="text-[11px] font-medium text-slate-600" htmlFor="min-price">
+                    Min
+                  </label>
+                  <input
+                    id="min-price"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    placeholder="0"
+                    value={filters.minPrice}
+                    onChange={(e) => onPriceRangeChange(e.target.value, filters.maxPrice)}
+                    className="min-w-0 flex-1 rounded-lg border border-slate-200 px-2 py-1.5 text-[12px] text-slate-900"
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <label className="text-[11px] font-medium text-slate-600" htmlFor="max-price">
+                    Max
+                  </label>
+                  <input
+                    id="max-price"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    placeholder="Any"
+                    value={filters.maxPrice}
+                    onChange={(e) => onPriceRangeChange(filters.minPrice, e.target.value)}
+                    className="min-w-0 flex-1 rounded-lg border border-slate-200 px-2 py-1.5 text-[12px] text-slate-900"
+                  />
+                </div>
+              </div>
+            </FilterCard>
+
+            <FilterCard
+              title="Minimum order quantity"
+              open={expandedSections.moq}
+              onToggle={() => toggleSection('moq')}
+              showClear={Boolean(filters.minMoq)}
+              onClear={() => onMinMoqChange('')}
+            >
+              <div className="px-2 py-2 sm:px-2.5">
+                <label className="sr-only" htmlFor="min-moq">
+                  Minimum MOQ (units)
+                </label>
+                <input
+                  id="min-moq"
+                  type="number"
+                  min="0"
+                  step="1"
+                  placeholder="e.g. 500"
+                  value={filters.minMoq}
+                  onChange={(e) => onMinMoqChange(e.target.value)}
+                  className="w-full rounded-lg border border-slate-200 px-2 py-2 text-[12px] text-slate-900"
+                />
+              </div>
+            </FilterCard>
 
             {countries.length > 0 ? (
               <FilterCard

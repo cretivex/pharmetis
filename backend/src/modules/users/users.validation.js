@@ -8,7 +8,8 @@ export const updateProfileSchema = Joi.object({
   country: Joi.string().max(100).optional(),
   city: Joi.string().max(100).optional(),
   avatar: Joi.string().uri().allow('', null).optional(),
-  profile_image: Joi.string().uri().allow('', null).optional()
+  profile_image: Joi.string().uri().allow('', null).optional(),
+  kycStatus: Joi.string().valid('NONE', 'SUBMITTED', 'VERIFIED', 'REJECTED').optional()
 });
 
 export const changePasswordSchema = Joi.object({

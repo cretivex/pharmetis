@@ -17,16 +17,20 @@ import checkoutRoutes from '../modules/checkout/checkout.routes.js';
 import notificationsRoutes from '../modules/notifications/notifications.routes.js';
 import buyersRoutes from '../modules/buyers/buyers.routes.js';
 import filtersRoutes from '../modules/filters/filters.routes.js';
+import searchRoutes from '../modules/search/search.routes.js';
 import auditLogsRoutes from '../modules/audit-logs/audit-logs.routes.js';
 import systemRoutes from '../modules/system/system.routes.js';
 import exchangeRatesRoutes from '../modules/exchange-rates/exchange-rates.routes.js';
 import healthRoutes from '../modules/health/health.routes.js';
 import uploadsRoutes from '../modules/uploads/uploads.routes.js';
+import messagesRoutes from '../modules/messages/messages.routes.js';
+import shippingRoutes from '../modules/shipping/shipping.routes.js';
 
 const router = express.Router();
 
 router.use('/health', healthRoutes);
 router.use('/auth', authRoutes);
+router.use('/search', searchRoutes);
 // Register /products/save BEFORE /products to avoid route conflict
 router.use('/products/save', savedProductsRoutes);
 router.use('/products', productsRoutes);
@@ -49,5 +53,7 @@ router.use('/system', systemRoutes);
 router.use('/exchange-rates', exchangeRatesRoutes);
 router.use('/filters', filtersRoutes);
 router.use('/upload', uploadsRoutes);
+router.use('/messages', messagesRoutes);
+router.use('/shipping', shippingRoutes);
 
 export default router;

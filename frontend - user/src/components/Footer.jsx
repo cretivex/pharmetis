@@ -8,110 +8,129 @@ function Footer() {
     { path: '/medicines', label: 'Medicines' },
     { path: '/suppliers', label: 'Suppliers' },
     { path: '/compliance', label: 'Compliance' },
-    { path: '/about', label: 'About Us' },
     { path: '/platform', label: 'Platform' },
+    { path: '/about', label: 'About Us' },
   ]
 
-  const connectLinks = [
-    { label: 'LinkedIn', href: 'https://linkedin.com' },
-    { label: 'Twitter', href: 'https://twitter.com' },
-    { label: 'YouTube', href: 'https://youtube.com' },
+  const resourceLinks = [
+    { path: '/resources', label: 'All resources' },
+    { path: '/blog', label: 'Blog' },
+    { path: '/industry-news', label: 'Industry news' },
+    { path: '/guides/import-export', label: 'Import & export guides' },
+    { path: '/guides/compliance-guides', label: 'Compliance guides' },
+    { path: '/guides/market-reports', label: 'Market reports' },
   ]
 
   const legalLinks = [
     { path: '/privacy', label: 'Privacy Policy' },
     { path: '/terms', label: 'Terms of Service' },
-    { path: '/compliance', label: 'Compliance Policy' },
+    { path: '/compliance', label: 'Compliance' },
   ]
 
+  const trustBadges = ['WHO-GMP', 'FDA', 'ISO']
+
   return (
-    <footer id="footer" className="border-t border-slate-800 bg-slate-950 text-slate-400">
+    <footer id="footer" className="border-t border-slate-800/80 bg-gradient-to-b from-slate-950 to-slate-950 text-slate-400">
       <Container>
-        <div className="grid grid-cols-1 gap-8 py-12 md:grid-cols-2 md:py-14 lg:grid-cols-4">
-          <div className="lg:col-span-1">
-            <div className="mb-6 flex items-center">
+        <div className="grid grid-cols-1 gap-10 py-14 sm:grid-cols-2 lg:grid-cols-4 lg:gap-12 lg:py-16">
+          {/* Brand */}
+          <div className="sm:col-span-2 lg:col-span-1">
+            <Link to="/" className="mb-5 inline-block">
               <img
                 src="/logo-pharmetis.svg"
                 alt="Pharmetis"
-                className="h-12 w-auto max-w-[280px] object-contain object-left sm:h-14"
+                className="h-11 w-auto max-w-[260px] object-contain object-left sm:h-12"
               />
-            </div>
-            <p className="text-sm leading-relaxed text-slate-500">
-              © {currentYear} Pharmetis. All rights reserved.
+            </Link>
+            <p className="max-w-sm text-sm leading-relaxed text-slate-500">
+              Verified pharmaceutical sourcing, RFQs, and compliance-focused trade execution.
             </p>
-            <p className="mt-4 text-sm">
+            <div className="mt-6 space-y-2 text-sm">
               <a
                 href="mailto:contact@pharmetis.com"
-                className="text-slate-300 transition-colors hover:text-white"
+                className="block text-slate-300 transition-colors hover:text-white"
               >
                 contact@pharmetis.com
               </a>
-            </p>
-          </div>
-
-          <div>
-            <h4 className="mb-4 text-base font-semibold text-white">Platform</h4>
-            <ul className="space-y-3">
-              {platformLinks.map((link) => (
-                <li key={link.path}>
-                  <Link to={link.path} className="text-sm text-slate-400 transition-colors hover:text-white">
-                    {link.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          <div>
-            <h4 className="mb-4 text-base font-semibold text-white">Legal</h4>
-            <ul className="space-y-3">
-              {legalLinks.map((link) => (
-                <li key={link.path}>
-                  <Link to={link.path} className="text-sm text-slate-400 transition-colors hover:text-white">
-                    {link.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          <div>
-            <h4 className="mb-4 text-base font-semibold text-white">Connect</h4>
-            <ul className="space-y-3">
-              {connectLinks.map((link) => (
-                <li key={link.label}>
-                  <a
-                    href={link.href}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-2 text-sm text-slate-400 transition-colors hover:text-white"
-                  >
-                    <span className="flex h-7 w-7 items-center justify-center rounded-full bg-slate-800 text-xs text-slate-300">
-                      {link.label === 'LinkedIn' && 'in'}
-                      {link.label === 'Twitter' && 'X'}
-                      {link.label === 'YouTube' && '▶'}
-                    </span>
-                    {link.label}
-                  </a>
-                </li>
-              ))}
-            </ul>
-            <div className="mt-6 flex flex-wrap gap-2">
-              {['WHO-GMP', 'FDA', 'ISO'].map((b) => (
+              <a
+                href="mailto:support@pharmetis.com"
+                className="block text-slate-300 transition-colors hover:text-white"
+              >
+                support@pharmetis.com
+              </a>
+            </div>
+            <div className="mt-6 flex flex-wrap gap-2" aria-label="Standards">
+              {trustBadges.map((b) => (
                 <span
                   key={b}
-                  className="rounded border border-slate-700 bg-slate-900/80 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-slate-500"
+                  className="rounded-md border border-slate-700/80 bg-slate-900/50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-slate-500"
                 >
                   {b}
                 </span>
               ))}
             </div>
           </div>
+
+          <div>
+            <h4 className="mb-4 text-xs font-semibold uppercase tracking-wider text-slate-500">
+              Platform
+            </h4>
+            <ul className="space-y-2.5">
+              {platformLinks.map((link) => (
+                <li key={link.path}>
+                  <Link
+                    to={link.path}
+                    className="text-sm text-slate-400 transition-colors hover:text-white"
+                  >
+                    {link.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <div>
+            <h4 className="mb-4 text-xs font-semibold uppercase tracking-wider text-slate-500">
+              Learn
+            </h4>
+            <ul className="space-y-2.5">
+              {resourceLinks.map((link) => (
+                <li key={link.path}>
+                  <Link
+                    to={link.path}
+                    className="text-sm text-slate-400 transition-colors hover:text-white"
+                  >
+                    {link.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <div>
+            <h4 className="mb-4 text-xs font-semibold uppercase tracking-wider text-slate-500">
+              Legal
+            </h4>
+            <ul className="space-y-2.5">
+              {legalLinks.map((link) => (
+                <li key={link.path}>
+                  <Link
+                    to={link.path}
+                    className="text-sm text-slate-400 transition-colors hover:text-white"
+                  >
+                    {link.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
         </div>
 
-        <div className="flex flex-col items-center justify-between gap-4 border-t border-slate-800 py-6 md:flex-row">
-          <p className="text-xs text-slate-500">© {currentYear} Pharmetis. All rights reserved.</p>
-          <div className="flex flex-wrap justify-center gap-4 text-xs">
+        <div className="flex flex-col items-center justify-between gap-4 border-t border-slate-800/80 py-6 sm:flex-row sm:py-7">
+          <p className="text-center text-xs text-slate-600 sm:text-left">
+            © {currentYear} Pharmetis. All rights reserved.
+          </p>
+          <nav className="flex flex-wrap justify-center gap-x-6 gap-y-2 text-xs" aria-label="Legal">
             <Link to="/privacy" className="text-slate-500 transition-colors hover:text-white">
               Privacy
             </Link>
@@ -121,7 +140,7 @@ function Footer() {
             <Link to="/compliance" className="text-slate-500 transition-colors hover:text-white">
               Compliance
             </Link>
-          </div>
+          </nav>
         </div>
       </Container>
     </footer>

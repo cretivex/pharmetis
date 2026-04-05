@@ -1322,11 +1322,11 @@ function MyRFQs() {
                   variant="outline"
                   onClick={() => {
                     setShowAcceptConfirmation(false)
-                    navigate('/buyer/dashboard')
+                    navigate('/buyer/rfqs')
                   }}
                   className="flex-1"
                 >
-                  Go to Dashboard
+                  Go to RFQs
                 </Button>
               </div>
             </motion.div>

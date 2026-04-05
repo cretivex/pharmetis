@@ -2,6 +2,7 @@ import { Outlet, useLocation } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import NetworkErrorBanner from '../components/NetworkErrorBanner';
+import CookieConsent from '../components/CookieConsent';
 
 function MainLayout() {
   const { pathname } = useLocation();
@@ -16,6 +17,7 @@ function MainLayout() {
         <Outlet />
       </main>
       <Footer />
+      <CookieConsent />
     </div>
   );
 }

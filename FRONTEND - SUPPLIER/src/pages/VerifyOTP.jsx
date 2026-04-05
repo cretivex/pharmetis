@@ -106,7 +106,7 @@ const VerifyOTP = () => {
       if (result?.success) {
         setSuccess('Account verified successfully! Redirecting to dashboard...');
         setTimeout(() => {
-          navigate('/supplier/dashboard');
+          navigate('/supplier/dashboard?onboarding=1');
         }, 1500);
       } else {
         setSuccess('Account verified successfully! Redirecting to login...');

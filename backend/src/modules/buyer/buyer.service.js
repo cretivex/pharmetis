@@ -593,3 +593,29 @@ export const requestLowerPriceService = async (quotationId, buyerId, data) => {
     throw error;
   }
 };
+
+export const listBuyerOrdersService = async (buyerId) => {
+  return prisma.order.findMany({
+    where: { buyerId, deletedAt: null },
+    orderBy: { createdAt: 'desc' },
+    take: 100,
+    include: {
+      supplier: { select: { id: true, companyName: true, slug: true } },
+      rfq: { select: { id: true, title: true, rfqNumber: true } },
+      shipmentDetail: { select: { trackingNumber: true, carrier: true, expectedDelivery: true, invoiceUrl: true } },
+    },
+  });
+};
+
+export const listBuyerInvoicesService = async (buyerId) => {
+  return prisma.invoice.findMany({
+    where: { buyerId },
+    orderBy: { issuedAt: 'desc' },
+    take: 100,
+    include: {
+      supplier: { select: { id: true, companyName: true, slug: true } },
+      rfq: { select: { id: true, title: true, rfqNumber: true } },
+      payment: { select: { id: true, status: true, transactionId: true } },
+    },
+  });
+};

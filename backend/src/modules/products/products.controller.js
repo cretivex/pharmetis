@@ -27,6 +27,21 @@ export const getProducts = async (req, res, next) => {
   }
 };
 
+/** Flat catalog response for marketplace filters (data + pagination at top level). */
+export const getProductsFilter = async (req, res, next) => {
+  try {
+    const result = await getProductsService(req.query);
+    res.status(200).json({
+      data: result.products,
+      total: result.pagination.total,
+      page: result.pagination.page,
+      totalPages: result.pagination.totalPages,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const getProductBySlug = async (req, res, next) => {
   try {
     const { slug } = req.params;

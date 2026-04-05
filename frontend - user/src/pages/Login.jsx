@@ -60,7 +60,7 @@ function Login() {
         typeof err === 'object' &&
         err?.response?.status === 401 &&
         String(msg).toLowerCase().includes('invalid')
-          ? ' If you signed up with OTP, use the OTP tab or set a password in Settings → Security.'
+          ? ' If you signed up with OTP, use the OTP tab to sign in.'
           : ''
       setError(msg + hint)
     } finally {
@@ -100,7 +100,18 @@ function Login() {
     try {
       const user = await otpService.verifyOTP(email, otp)
       dispatch(setUser(user))
-      navigate('/')
+      const returnTo = location.state?.from
+      if (
+        typeof returnTo === 'string' &&
+        returnTo.startsWith('/') &&
+        !returnTo.startsWith('//') &&
+        returnTo !== '/login' &&
+        returnTo !== '/register'
+      ) {
+        navigate(returnTo)
+      } else {
+        navigate('/')
+      }
     } catch (err) {
       setError(err.response?.data?.message || err.message || 'Invalid OTP. Please try again.')
     } finally {
@@ -449,6 +460,7 @@ function Login() {
               No account yet?{' '}
               <Link
                 to="/register"
+                state={location.state}
                 className="font-semibold text-neutral-900 underline-offset-4 transition-colors hover:text-neutral-600 hover:underline"
               >
                 Create one

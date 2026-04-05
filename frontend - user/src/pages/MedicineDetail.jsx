@@ -25,6 +25,8 @@ import { medicineCardSurfaceClass } from '../components/medicines/medicineCardSt
 import { productsService } from '../services/products.service.js'
 import { transformProduct, transformProductDetail } from '../utils/dataTransform.js'
 import { authService } from '../services/auth.service.js'
+import { shippingService } from '../services/shipping.service.js'
+import { useCurrency } from '../contexts/CurrencyContext.jsx'
 
 const BTN_PRIMARY =
   'inline-flex items-center justify-center gap-2 rounded-xl border border-neutral-950 bg-neutral-900 px-4 py-3 text-sm font-semibold text-white shadow-md shadow-black/20 transition hover:bg-neutral-800 hover:shadow-lg active:scale-[0.99] disabled:opacity-50'
@@ -80,6 +82,7 @@ function StarsRow({ rating = 4.9 }) {
 function MedicineDetail() {
   const { slug } = useParams()
   const navigate = useNavigate()
+  const { formatPrice } = useCurrency()
   const [medicine, setMedicine] = useState(null)
   const [relatedProducts, setRelatedProducts] = useState([])
   const [loading, setLoading] = useState(true)
@@ -87,10 +90,28 @@ function MedicineDetail() {
   const [saving, setSaving] = useState(false)
   const [isSaved, setIsSaved] = useState(false)
   const [activeTab, setActiveTab] = useState('overview')
+  const [shippingEstimate, setShippingEstimate] = useState(null)
 
   useEffect(() => {
     loadProduct()
   }, [slug])
+
+  useEffect(() => {
+    if (!medicine) return
+    const base = medicine.price != null ? Number(medicine.price) : 0
+    const orderValueUsd = base > 0 ? Math.max(base * 12, base) : 2500
+    const cold =
+      typeof medicine.dosageForm === 'string' &&
+      /inject|vial|cold|refrigerat/i.test(medicine.dosageForm)
+    shippingService
+      .getEstimate({
+        destinationCountry: 'US',
+        orderValueUsd,
+        coldChain: cold,
+      })
+      .then(setShippingEstimate)
+      .catch(() => setShippingEstimate(null))
+  }, [medicine])
 
   useEffect(() => {
     if (medicine?.id) checkIfSaved()
@@ -391,6 +412,21 @@ function MedicineDetail() {
                   ) : null}
                 </p>
 
+                {medicine.price != null && medicine.price > 0 ? (
+                  <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50/90 px-3 py-2.5">
+                    <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                      Indicative list price
+                    </p>
+                    <p className="mt-0.5 text-lg font-bold tabular-nums text-slate-900">
+                      From {formatPrice(medicine.price, medicine.currency || 'USD')}
+                      <span className="ml-1 text-xs font-normal text-slate-500">/ unit (MOQ applies)</span>
+                    </p>
+                    <p className="mt-1 text-[11px] text-slate-500">
+                      Final price is quoted per RFQ; volume and Incoterms affect totals.
+                    </p>
+                  </div>
+                ) : null}
+
                 <div className="mt-4 flex flex-wrap gap-2">
                   {displayCerts.map((c) => (
                     <span
@@ -552,6 +588,35 @@ function MedicineDetail() {
                     </p>
                   </div>
                 </div>
+                {shippingEstimate?.tiers?.length ? (
+                  <div className="mt-6 space-y-3">
+                    <p className="text-sm font-semibold text-slate-900">Estimated delivery options</p>
+                    <ul className="space-y-2">
+                      {shippingEstimate.tiers.map((tier) => (
+                        <li
+                          key={tier.id}
+                          className="rounded-lg border border-slate-100 bg-white px-3 py-2 text-sm text-slate-700"
+                        >
+                          <span className="font-medium text-slate-900">{tier.label}</span>
+                          <span className="text-slate-500">
+                            {' '}
+                            · {tier.minDays}–{tier.maxDays} business days (indicative)
+                          </span>
+                          {tier.description ? (
+                            <span className="mt-1 block text-xs text-slate-500">{tier.description}</span>
+                          ) : null}
+                        </li>
+                      ))}
+                    </ul>
+                    {shippingEstimate.shippingCostHintUsd != null ? (
+                      <p className="text-xs text-slate-500">
+                        Rough freight hint for sample order value:{' '}
+                        {formatPrice(shippingEstimate.shippingCostHintUsd, 'USD')} (not a binding quote).
+                      </p>
+                    ) : null}
+                    <p className="text-xs text-slate-500">{shippingEstimate.disclaimer}</p>
+                  </div>
+                ) : null}
               </div>
             )}
           </div>
