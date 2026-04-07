@@ -14,10 +14,12 @@ export const getSuppliersService = async (filters = {}) => {
   } = filters;
 
   const where = {
-    deletedAt: null
+    deletedAt: null,
+    // Public supplier listing should only show active suppliers by default.
+    isActive: true
   };
   
-  // Only filter by isActive if explicitly requested
+  // Allow explicit override via query when needed (e.g., admin tooling).
   if (filters.isActive !== undefined) {
     where.isActive = filters.isActive === 'true' || filters.isActive === true;
   }

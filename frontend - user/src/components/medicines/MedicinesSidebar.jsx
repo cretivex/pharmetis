@@ -126,7 +126,7 @@ export default function MedicinesSidebar({
 
   const asideClass = `
     w-full shrink-0 lg:w-[15.5rem] lg:min-h-0
-    ${showMobileFilters ? 'fixed inset-0 z-40 flex h-[100dvh] max-h-[100dvh] flex-col overflow-hidden bg-[#f1f4f8] p-3 sm:p-4' : 'hidden'}
+    ${showMobileFilters ? 'fixed inset-0 z-[120] flex h-[100dvh] max-h-[100dvh] flex-col overflow-hidden bg-[#f1f4f8] p-3 sm:p-4' : 'hidden'}
     lg:static lg:z-auto lg:block lg:h-auto lg:max-h-none lg:overflow-visible lg:bg-transparent lg:p-0
   `
 
@@ -147,7 +147,7 @@ export default function MedicinesSidebar({
           </div>
         </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-y-contain pr-0.5 [scrollbar-gutter:stable] touch-pan-y">
+        <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-y-contain pr-0.5 [scrollbar-gutter:stable] touch-pan-y [-webkit-overflow-scrolling:touch]">
           <div className="rounded-2xl border border-slate-300/60 bg-[#e8ecf2] p-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.55)] sm:p-3">
             <div className="flex flex-col gap-2 pb-3">
             {categories.length > 0 ? (

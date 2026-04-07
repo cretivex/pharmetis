@@ -95,7 +95,6 @@ function Navbar() {
         p === '/industry-news' ||
         (typeof p === 'string' && p.startsWith('/guides')),
     },
-    { to: '/platform', label: 'Platform' },
     { to: '/about', label: 'About Us' },
   ]
 

@@ -40,7 +40,9 @@ export const loginController = async (req, res, next) => {
       success: true,
       message: 'Login successful',
       data: {
-        user: result.user
+        user: result.user,
+        token: result.accessToken,
+        accessToken: result.accessToken
       }
     });
   } catch (error) {

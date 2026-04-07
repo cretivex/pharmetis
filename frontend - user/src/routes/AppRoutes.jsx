@@ -14,7 +14,6 @@ import MedicineDetail from '../pages/MedicineDetail';
 import Suppliers from '../pages/Suppliers';
 import SupplierDetail from '../pages/SupplierDetail';
 import About from '../pages/About';
-import Platform from '../pages/Platform';
 import Compliance from '../pages/Compliance';
 import Privacy from '../pages/Privacy';
 import Terms from '../pages/Terms';
@@ -62,7 +61,6 @@ function AppRoutes() {
         <Route path="/suppliers" element={<Suppliers />} />
         <Route path="/suppliers/:slug" element={<SupplierDetail />} />
         <Route path="/about" element={<About />} />
-        <Route path="/platform" element={<Platform />} />
         <Route path="/resources" element={<ResourcesHub />} />
         <Route path="/blog" element={<Blog />} />
         <Route path="/industry-news" element={<IndustryNews />} />

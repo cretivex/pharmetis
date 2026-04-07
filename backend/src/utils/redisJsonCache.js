@@ -78,3 +78,30 @@ export async function setJson(key, value, ttlSeconds) {
     /* ignore — graceful degradation */
   }
 }
+
+/**
+ * Delete all keys for supplier list variants.
+ * Uses SCAN to avoid blocking Redis with KEYS.
+ */
+export async function invalidateSuppliersListCache() {
+  const r = getRedisClient();
+  if (!r) return 0;
+
+  const pattern = 'suppliers:list:v1:*';
+  let cursor = '0';
+  let deleted = 0;
+
+  try {
+    do {
+      const [nextCursor, keys] = await r.scan(cursor, 'MATCH', pattern, 'COUNT', 200);
+      cursor = nextCursor;
+      if (keys && keys.length > 0) {
+        deleted += await r.del(...keys);
+      }
+    } while (cursor !== '0');
+  } catch {
+    return 0;
+  }
+
+  return deleted;
+}

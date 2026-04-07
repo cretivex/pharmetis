@@ -144,14 +144,16 @@ export const refreshAccessToken = async (refreshToken) => {
 };
 
 export const generateTokens = async (userId) => {
+  const accessJti = crypto.randomUUID();
+  const refreshJti = crypto.randomUUID();
   const accessToken = jwt.sign(
-    { userId },
+    { userId, jti: accessJti },
     env.JWT_SECRET,
     { expiresIn: env.JWT_EXPIRES_IN }
   );
 
   const refreshToken = jwt.sign(
-    { userId },
+    { userId, jti: refreshJti },
     env.JWT_REFRESH_SECRET,
     { expiresIn: env.JWT_REFRESH_EXPIRES_IN }
   );

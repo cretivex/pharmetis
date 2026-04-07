@@ -1,0 +1,14 @@
+[
+  {
+    "email": "buyer1@healthcare.com",
+    "password": "password123"
+  },
+  {
+    "email": "buyer2@pharmacy.com",
+    "password": "password123"
+  },
+  {
+    "email": "buyer3@hospital.com",
+    "password": "password123"
+  }
+]

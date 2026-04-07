@@ -20,7 +20,8 @@ import { setAuthCookies } from '../../utils/authCookies.js';
 import {
   getJson,
   setJson,
-  suppliersListCacheKey
+  suppliersListCacheKey,
+  invalidateSuppliersListCache
 } from '../../utils/redisJsonCache.js';
 
 const SUPPLIERS_LIST_CACHE_TTL_SEC = 300;
@@ -159,6 +160,7 @@ export const createSupplier = async (req, res, next) => {
       licenseExpiry,
       postalCode
     });
+    await invalidateSuppliersListCache();
 
     // 3. Return success (OTP sent to email)
     return res.status(201).json({
@@ -201,6 +203,7 @@ export const verifySupplierOTP = async (req, res, next) => {
     const result = await verifySupplierOTPService(email, otpCode);
 
     setAuthCookies(res, result.accessToken, result.refreshToken);
+    await invalidateSuppliersListCache();
 
     return res.status(200).json({
       success: true,
@@ -311,6 +314,7 @@ export const updateSupplier = async (req, res, next) => {
   try {
     const { id } = req.params;
     const result = await updateSupplierService(id, req.body);
+    await invalidateSuppliersListCache();
     const user = req.user;
 
     if (user && (req.body.isVerified !== undefined || req.body.isActive !== undefined)) {
@@ -347,6 +351,7 @@ export const deleteSupplier = async (req, res, next) => {
   try {
     const { id } = req.params;
     await deleteSupplierService(id);
+    await invalidateSuppliersListCache();
     const user = req.user;
     if (user) {
       const { logAdminAction } = await import('../../utils/auditLogger.js');
@@ -437,6 +442,7 @@ export const updateSupplierMe = async (req, res, next) => {
     }
 
     const result = await updateSupplierService(supplier.id, req.body);
+    await invalidateSuppliersListCache();
     
     res.status(200).json({
       success: true,

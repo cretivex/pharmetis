@@ -8,7 +8,6 @@ function Footer() {
     { path: '/medicines', label: 'Medicines' },
     { path: '/suppliers', label: 'Suppliers' },
     { path: '/compliance', label: 'Compliance' },
-    { path: '/platform', label: 'Platform' },
     { path: '/about', label: 'About Us' },
   ]
 

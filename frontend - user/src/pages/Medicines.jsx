@@ -130,6 +130,15 @@ function Medicines() {
   }, [searchParams])
 
   useEffect(() => {
+    if (!showMobileFilters) return
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = prev
+    }
+  }, [showMobileFilters])
+
+  useEffect(() => {
     setSearchParams((prev) => {
       const p = new URLSearchParams(prev)
       const next = debouncedSearch.trim()
